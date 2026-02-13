@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
+  "theme": "linden",
   "name": "Volki",
   "colors": {
     "primary": "#7C3AED",
@@ -166,5 +166,8 @@
       "github": "https://github.com/shmigatron/volki",
       "discord": "https://discord.gg/volki"
     }
+  },
+  "background": {
+    "decoration": "windows"
   }
 }
