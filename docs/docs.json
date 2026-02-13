@@ -149,18 +149,6 @@
       }
     ],
     "global": {
-      "anchors": [
-        {
-          "anchor": "GitHub",
-          "href": "https://github.com/shmigatron/volki",
-          "icon": "github"
-        },
-        {
-          "anchor": "Changelog",
-          "href": "/changelog",
-          "icon": "list"
-        }
-      ]
     }
   },
   "contextual": {
