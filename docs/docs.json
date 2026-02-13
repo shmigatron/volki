@@ -1,146 +1,182 @@
 {
-  "$schema": "https://mintlify.com/schema.json",
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
   "name": "Volki",
-  "logo": {
-    "dark": "/logo/volki-dark.svg",
-    "light": "/logo/volki-light.svg"
-  },
-  "favicon": "/favicon.svg",
   "colors": {
     "primary": "#7C3AED",
     "light": "#A78BFA",
-    "dark": "#5B21B6",
-    "anchors": {
-      "from": "#7C3AED",
-      "to": "#6366F1"
+    "dark": "#5B21B6"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/volki-light.svg",
+    "dark": "/logo/volki-dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/shmigatron/volki"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "/quickstart"
     }
   },
-  "topbarLinks": [
-    {
-      "name": "GitHub",
-      "url": "https://github.com/shmigatron/volki"
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "quickstart",
+              "why-volki"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/ci-setup",
+              "guides/monorepos",
+              "guides/migrate-from-eslint",
+              "guides/migrate-from-prettier",
+              "guides/editor-integration",
+              "guides/custom-rules"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Commands",
+        "groups": [
+          {
+            "group": "Core",
+            "pages": [
+              "commands/check",
+              "commands/fix",
+              "commands/health",
+              "commands/status"
+            ]
+          },
+          {
+            "group": "Tools",
+            "pages": [
+              "commands/lint",
+              "commands/format",
+              "commands/deadcode",
+              "commands/deps"
+            ]
+          },
+          {
+            "group": "Setup",
+            "pages": [
+              "commands/init",
+              "commands/migrate"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Configuration",
+        "groups": [
+          {
+            "group": "Config",
+            "pages": [
+              "config/overview",
+              "config/format",
+              "config/lint",
+              "config/deadcode",
+              "config/ignore",
+              "config/presets"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Languages",
+        "groups": [
+          {
+            "group": "JavaScript Ecosystem",
+            "pages": [
+              "languages/typescript",
+              "languages/javascript"
+            ]
+          },
+          {
+            "group": "Backend",
+            "pages": [
+              "languages/python",
+              "languages/java",
+              "languages/go",
+              "languages/rust",
+              "languages/ruby",
+              "languages/php"
+            ]
+          },
+          {
+            "group": "Mobile",
+            "pages": [
+              "languages/swift",
+              "languages/kotlin"
+            ]
+          },
+          {
+            "group": "Systems",
+            "pages": [
+              "languages/cpp"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/cli-flags",
+              "reference/rules",
+              "reference/exit-codes",
+              "reference/json-output"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/shmigatron/volki",
+          "icon": "github"
+        },
+        {
+          "anchor": "Changelog",
+          "href": "/changelog",
+          "icon": "list"
+        }
+      ]
     }
-  ],
-  "topbarCtaButton": {
-    "name": "Get Started",
-    "url": "/quickstart"
   },
-  "tabs": [
-    {
-      "name": "Commands",
-      "url": "commands"
-    },
-    {
-      "name": "Configuration",
-      "url": "config"
-    },
-    {
-      "name": "Languages",
-      "url": "languages"
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "claude",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/volkidev",
+      "github": "https://github.com/shmigatron/volki",
+      "discord": "https://discord.gg/volki"
     }
-  ],
-  "anchors": [
-    {
-      "name": "GitHub",
-      "icon": "github",
-      "url": "https://github.com/shmigatron/volki"
-    },
-    {
-      "name": "Discord — The Pack",
-      "icon": "discord",
-      "url": "https://discord.gg/volki"
-    },
-    {
-      "name": "Changelog",
-      "icon": "list",
-      "url": "/changelog"
-    }
-  ],
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": [
-        "introduction",
-        "quickstart",
-        "why-volki"
-      ]
-    },
-    {
-      "group": "Commands",
-      "pages": [
-        "commands/check",
-        "commands/lint",
-        "commands/format",
-        "commands/deadcode",
-        "commands/deps",
-        "commands/fix",
-        "commands/health",
-        "commands/status",
-        "commands/init",
-        "commands/migrate"
-      ]
-    },
-    {
-      "group": "Configuration",
-      "pages": [
-        "config/overview",
-        "config/format",
-        "config/lint",
-        "config/deadcode",
-        "config/ignore",
-        "config/presets"
-      ]
-    },
-    {
-      "group": "Languages",
-      "pages": [
-        "languages/typescript",
-        "languages/javascript",
-        "languages/python",
-        "languages/java",
-        "languages/go",
-        "languages/rust",
-        "languages/ruby",
-        "languages/swift",
-        "languages/kotlin",
-        "languages/php",
-        "languages/cpp"
-      ]
-    },
-    {
-      "group": "Guides",
-      "pages": [
-        "guides/ci-setup",
-        "guides/monorepos",
-        "guides/migrate-from-eslint",
-        "guides/migrate-from-prettier",
-        "guides/editor-integration",
-        "guides/custom-rules"
-      ]
-    },
-    {
-      "group": "Reference",
-      "pages": [
-        "reference/cli-flags",
-        "reference/rules",
-        "reference/exit-codes",
-        "reference/json-output"
-      ]
-    }
-  ],
-  "footerSocials": {
-    "github": "https://github.com/shmigatron/volki",
-    "discord": "https://discord.gg/volki",
-    "x": "https://x.com/volkidev"
-  },
-  "feedback": {
-    "thumbsRating": true,
-    "suggestEdit": true
-  },
-  "search": {
-    "prompt": "search the docs..."
-  },
-  "modeToggle": {
-    "default": "dark"
   }
 }
