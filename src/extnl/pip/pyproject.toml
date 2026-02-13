@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "volki"
+version = "0.1.0"
+description = "SDK for building volki formatter plugins (Python)"
+license = "MIT"
+requires-python = ">=3.8"
+keywords = ["volki", "plugin", "formatter"]
+
+[project.optional-dependencies]
+dev = ["mypy>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/volki/volki"
+
+[project.scripts]
+
+[tool.setuptools.packages.find]
+include = ["volki*"]
+
+[tool.mypy]
+strict = true
+packages = ["volki"]

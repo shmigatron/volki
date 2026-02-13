@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "volki-plugin-example"
+version = "0.1.0"
+description = "Example volki formatter plugin that prepends a banner comment"
+license = "MIT"
+requires-python = ">=3.8"
+dependencies = [
+    "volki>=0.1.0",
+]

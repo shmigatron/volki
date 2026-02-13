@@ -1,0 +1,16 @@
+{
+  "name": "volki-plugin-example",
+  "version": "0.1.0",
+  "description": "Example volki formatter plugin that prepends a banner comment",
+  "main": "volki-plugin.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "volki": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
