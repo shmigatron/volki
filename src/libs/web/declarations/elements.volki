@@ -1,0 +1,242 @@
+/// HTML Element Constructors
+///
+/// These functions create `HtmlElement` values for each standard HTML tag.
+/// In RSX templates, `<div>` compiles to `div()`, `<span>` to `span()`, etc.
+///
+/// Each constructor returns an `HtmlElement` with builder methods:
+///   .attr(name, value)  — add an HTML attribute
+///   .class(value)       — set the class attribute
+///   .id(value)          — set the id attribute
+///   .child(node)        — add a child node
+///   .children(nodes)    — add multiple children
+///   .text(t)            — add a text child
+///   .raw(html)          — add raw HTML child
+///   .into_node()        — convert to HtmlNode
+
+// --- Layout ---
+
+/// `<div>` — Generic block-level container for grouping content.
+/// Category: Layout
+pub fn div() -> HtmlElement
+
+/// `<span>` — Generic inline container for phrasing content.
+/// Category: Layout
+pub fn span() -> HtmlElement
+
+/// `<header>` — Introductory content or navigational aids.
+/// Category: Layout
+pub fn header() -> HtmlElement
+
+/// `<footer>` — Footer for its nearest sectioning content.
+/// Category: Layout
+pub fn footer() -> HtmlElement
+
+/// `<main>` — Dominant content of the document body.
+/// Category: Layout
+/// Note: Uses `main_el()` as the Rust constructor to avoid the `main` keyword.
+/// In RSX, `<main>` compiles to `main_el()`.
+pub fn main_el() -> HtmlElement
+
+/// `<nav>` — Section containing navigation links.
+/// Category: Layout
+pub fn nav() -> HtmlElement
+
+/// `<section>` — Standalone section of content.
+/// Category: Layout
+pub fn section() -> HtmlElement
+
+/// `<article>` — Self-contained composition (blog post, comment, widget).
+/// Category: Layout
+pub fn article() -> HtmlElement
+
+// --- Text ---
+
+/// `<p>` — Paragraph of text.
+/// Category: Text
+pub fn p() -> HtmlElement
+
+/// `<h1>` — Top-level heading.
+/// Category: Text
+pub fn h1() -> HtmlElement
+
+/// `<h2>` — Second-level heading.
+/// Category: Text
+pub fn h2() -> HtmlElement
+
+/// `<h3>` — Third-level heading.
+/// Category: Text
+pub fn h3() -> HtmlElement
+
+/// `<h4>` — Fourth-level heading.
+/// Category: Text
+pub fn h4() -> HtmlElement
+
+/// `<h5>` — Fifth-level heading.
+/// Category: Text
+pub fn h5() -> HtmlElement
+
+/// `<h6>` — Sixth-level heading.
+/// Category: Text
+pub fn h6() -> HtmlElement
+
+/// `<strong>` — Strong importance, typically rendered bold.
+/// Category: Text
+pub fn strong() -> HtmlElement
+
+/// `<em>` — Stress emphasis, typically rendered italic.
+/// Category: Text
+pub fn em() -> HtmlElement
+
+/// `<pre>` — Preformatted text that preserves whitespace.
+/// Category: Text
+pub fn pre() -> HtmlElement
+
+/// `<code>` — Fragment of computer code.
+/// Category: Text
+pub fn code() -> HtmlElement
+
+/// `<blockquote>` — Block quotation from another source.
+/// Category: Text
+pub fn blockquote() -> HtmlElement
+
+/// `<small>` — Side comments and small print.
+/// Category: Text
+pub fn small() -> HtmlElement
+
+// --- Links & Media ---
+
+/// `<a>` — Hyperlink to another page or resource.
+/// Category: Links & Media
+/// Attributes: href, target, rel, download
+pub fn a() -> HtmlElement
+
+/// `<img>` — Embeds an image. Self-closing (void element).
+/// Category: Links & Media
+/// Attributes: src, alt, width, height, loading
+pub fn img() -> HtmlElement
+
+// --- Lists ---
+
+/// `<ul>` — Unordered (bulleted) list.
+/// Category: Lists
+pub fn ul() -> HtmlElement
+
+/// `<ol>` — Ordered (numbered) list.
+/// Category: Lists
+pub fn ol() -> HtmlElement
+
+/// `<li>` — List item within `<ul>` or `<ol>`.
+/// Category: Lists
+pub fn li() -> HtmlElement
+
+// --- Tables ---
+
+/// `<table>` — Table container.
+/// Category: Tables
+pub fn table() -> HtmlElement
+
+/// `<thead>` — Table header row group.
+/// Category: Tables
+pub fn thead() -> HtmlElement
+
+/// `<tbody>` — Table body row group.
+/// Category: Tables
+pub fn tbody() -> HtmlElement
+
+/// `<tr>` — Table row.
+/// Category: Tables
+pub fn tr() -> HtmlElement
+
+/// `<th>` — Table header cell.
+/// Category: Tables
+/// Attributes: colspan, rowspan
+pub fn th() -> HtmlElement
+
+/// `<td>` — Table data cell.
+/// Category: Tables
+/// Attributes: colspan, rowspan
+pub fn td() -> HtmlElement
+
+// --- Forms ---
+
+/// `<form>` — Interactive form for user input.
+/// Category: Forms
+/// Attributes: action, method, enctype
+pub fn form() -> HtmlElement
+
+/// `<button>` — Clickable button.
+/// Category: Forms
+/// Attributes: type, disabled, name, value
+pub fn button() -> HtmlElement
+
+/// `<label>` — Caption for a form control.
+/// Category: Forms
+/// Attributes: for
+pub fn label() -> HtmlElement
+
+/// `<input>` — Interactive form control. Self-closing (void element).
+/// Category: Forms
+/// Attributes: type, name, value, placeholder, required, disabled, readonly, checked, min, max, pattern
+pub fn input() -> HtmlElement
+
+/// `<textarea>` — Multi-line text input.
+/// Category: Forms
+/// Attributes: name, rows, cols, placeholder, required, disabled, readonly
+pub fn textarea() -> HtmlElement
+
+/// `<select>` — Drop-down selection control.
+/// Category: Forms
+/// Attributes: name, multiple, required, disabled
+pub fn select() -> HtmlElement
+
+/// `<option>` — Option within a `<select>` element.
+/// Category: Forms
+/// Attributes: value, selected, disabled
+pub fn option() -> HtmlElement
+
+// --- Scripting & Style ---
+
+/// `<script>` — Embedded or linked JavaScript.
+/// Category: Scripting
+/// Attributes: src, type, defer, async
+pub fn script() -> HtmlElement
+
+/// `<style>` — Embedded CSS stylesheet.
+/// Category: Scripting
+pub fn style() -> HtmlElement
+
+// --- Void / Metadata ---
+
+/// `<br>` — Line break. Self-closing (void element).
+/// Category: Void
+pub fn br() -> HtmlElement
+
+/// `<hr>` — Thematic break (horizontal rule). Self-closing (void element).
+/// Category: Void
+pub fn hr() -> HtmlElement
+
+/// `<meta>` — Document metadata. Self-closing (void element).
+/// Category: Metadata
+/// Attributes: name, content, charset, http-equiv, property
+pub fn meta() -> HtmlElement
+
+/// `<link>` — External resource link (stylesheets, icons). Self-closing (void element).
+/// Category: Metadata
+/// Attributes: rel, href, type, media
+pub fn link() -> HtmlElement
+
+// --- Text Node Constructors ---
+
+/// Creates an escaped text node. The text will be HTML-escaped on render.
+///
+/// ```
+/// text("Hello <world>")  // renders as: Hello &lt;world&gt;
+/// ```
+pub fn text(t: &str) -> HtmlNode
+
+/// Creates a raw HTML node. The content is inserted without escaping.
+///
+/// ```
+/// raw_html("<b>bold</b>")  // renders as: <b>bold</b>
+/// ```
+pub fn raw_html(html: &str) -> HtmlNode

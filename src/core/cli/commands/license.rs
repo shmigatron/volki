@@ -1,10 +1,13 @@
-use std::path::Path;
+use crate::core::volkiwithstds::path::Path;
+
+use crate::vvec;
 
 use crate::core::cli::command::{Command, OptionSpec};
 use crate::core::cli::error::CliError;
 use crate::core::cli::parser::ParsedArgs;
 use crate::core::package::detect::detector::detect;
 use crate::core::package::detect::types::Ecosystem;
+use crate::core::volkiwithstds::collections::{String, Vec};
 use crate::libs::lang::shared::license::display;
 use crate::libs::lang::shared::license::types::{RiskLevel, ScanConfig};
 
@@ -28,7 +31,7 @@ impl Command for LicenseCommand {
     }
 
     fn options(&self) -> Vec<OptionSpec> {
-        vec![
+        vvec![
             OptionSpec {
                 name: "path",
                 description: "Directory containing the project",
@@ -98,22 +101,22 @@ impl Command for LicenseCommand {
 
     fn execute(&self, args: &ParsedArgs) -> Result<(), CliError> {
         let path = args.get_option("path").unwrap_or(".");
-        let filter = args.get_option("filter").map(|s| s.to_string());
-        let exclude = args.get_option("exclude").map(|s| s.to_string());
+        let filter = args.get_option("filter").map(|s| String::from(s));
+        let exclude = args.get_option("exclude").map(|s| String::from(s));
         let risk_str = args.get_option("risk").unwrap_or("high");
         let group = args.get_flag("group");
         let dev = args.get_flag("dev");
         let summary = args.get_flag("summary");
 
         let risk_level = RiskLevel::from_str(risk_str).ok_or_else(|| {
-            CliError::InvalidUsage(format!(
+            CliError::InvalidUsage(crate::vformat!(
                 "Invalid risk level '{}'. Use: low, medium, high",
                 risk_str
             ))
         })?;
 
         let config = ScanConfig {
-            path: path.to_string(),
+            path: String::from(path),
             include_dev: dev,
             filter,
             exclude,
@@ -138,9 +141,9 @@ impl Command for LicenseCommand {
             Ecosystem::Swift => crate::libs::lang::swift::license::scan(&config),
             Ecosystem::Dart => crate::libs::lang::dart::license::scan(&config),
         }
-        .map_err(|e| CliError::InvalidUsage(e.to_string()))?;
+        .map_err(|e| CliError::InvalidUsage(crate::vformat!("{e}")))?;
 
-        let mut out = std::io::stdout();
+        let mut out = crate::core::volkiwithstds::io::stdout();
 
         if summary {
             display::print_summary(&mut out, &result);
@@ -156,16 +159,19 @@ impl Command for LicenseCommand {
 
 fn auto_detect(path: &str) -> Result<Ecosystem, CliError> {
     let dir = Path::new(path);
-    let projects = detect(dir).map_err(|e| CliError::InvalidUsage(e.to_string()))?;
+    let projects = detect(dir).map_err(|e| CliError::InvalidUsage(crate::vformat!("{e}")))?;
 
     match projects.len() {
-        0 => Err(CliError::InvalidUsage(
-            "No supported ecosystem detected. Use --ecosystem to specify manually.".to_string(),
-        )),
+        0 => Err(CliError::InvalidUsage(crate::vformat!(
+            "No supported ecosystem detected. Use --ecosystem to specify manually."
+        ))),
         1 => Ok(projects[0].ecosystem.clone()),
         _ => {
-            let names: Vec<String> = projects.iter().map(|p| p.ecosystem.to_string()).collect();
-            Err(CliError::InvalidUsage(format!(
+            let names: Vec<String> = projects
+                .iter()
+                .map(|p| crate::vformat!("{}", p.ecosystem))
+                .collect();
+            Err(CliError::InvalidUsage(crate::vformat!(
                 "Multiple ecosystems detected: {}. Use --ecosystem to specify which to scan.",
                 names.join(", ")
             )))
@@ -174,7 +180,7 @@ fn auto_detect(path: &str) -> Result<Ecosystem, CliError> {
 }
 
 fn parse_ecosystem_flag(s: &str) -> Result<Ecosystem, CliError> {
-    match s.to_lowercase().as_str() {
+    match String::from(s).to_lowercase().as_str() {
         "node" | "js" | "javascript" => Ok(Ecosystem::Node),
         "python" | "py" => Ok(Ecosystem::Python),
         "ruby" | "rb" => Ok(Ecosystem::Ruby),
@@ -186,7 +192,7 @@ fn parse_ecosystem_flag(s: &str) -> Result<Ecosystem, CliError> {
         "elixir" | "ex" => Ok(Ecosystem::Elixir),
         "swift" => Ok(Ecosystem::Swift),
         "dart" | "flutter" => Ok(Ecosystem::Dart),
-        _ => Err(CliError::InvalidUsage(format!(
+        _ => Err(CliError::InvalidUsage(crate::vformat!(
             "Unknown ecosystem '{}'. Supported: node, python, ruby, rust, go, java, dotnet, php, elixir, swift, dart",
             s
         ))),

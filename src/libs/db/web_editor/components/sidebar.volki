@@ -1,0 +1,48 @@
+//! Sidebar navigation — connection info and table list.
+
+use crate::libs::web::prelude::*;
+
+pub fn SidebarContent() -> Fragment {
+    <div class="sidebar-header">
+        <h1>
+            <span>"volki"</span>
+            " db editor"
+        </h1>
+    </div>
+    <div class="sidebar-section">
+        <h3>"Connection"</h3>
+        <a class="sidebar-item active" href="/">
+            <span class="icon">"*"</span>
+            <span>"localhost:5432"</span>
+            <span class="badge">"pg"</span>
+        </a>
+    </div>
+    <div class="sidebar-section">
+        <h3>"Tables"</h3>
+        <a class="sidebar-item active" href="#">
+            <span class="icon">"#"</span>
+            <span>"users"</span>
+            <span class="badge">"12"</span>
+        </a>
+        <a class="sidebar-item" href="#">
+            <span class="icon">"#"</span>
+            <span>"posts"</span>
+            <span class="badge">"148"</span>
+        </a>
+        <a class="sidebar-item" href="#">
+            <span class="icon">"#"</span>
+            <span>"comments"</span>
+            <span class="badge">"892"</span>
+        </a>
+        <a class="sidebar-item" href="#">
+            <span class="icon">"#"</span>
+            <span>"sessions"</span>
+            <span class="badge">"3"</span>
+        </a>
+        <a class="sidebar-item" href="#">
+            <span class="icon">"#"</span>
+            <span>"migrations"</span>
+            <span class="badge">"24"</span>
+        </a>
+    </div>
+}

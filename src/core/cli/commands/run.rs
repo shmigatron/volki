@@ -1,8 +1,11 @@
+use crate::{veprintln, vvec};
+
 use crate::core::cli::command::{Command, OptionSpec};
 use crate::core::cli::error::CliError;
 use crate::core::cli::output;
 use crate::core::cli::parser::ParsedArgs;
 use crate::core::cli::style;
+use crate::core::volkiwithstds::collections::Vec;
 
 pub struct RunCommand;
 
@@ -20,7 +23,7 @@ impl Command for RunCommand {
     }
 
     fn options(&self) -> Vec<OptionSpec> {
-        vec![
+        vvec![
             OptionSpec {
                 name: "config",
                 description: "Path to configuration file",
@@ -47,19 +50,19 @@ impl Command for RunCommand {
         if verbose {
             output::print_item(
                 &style::dim(style::BULLET),
-                &format!("verbose mode enabled"),
+                &crate::vformat!("verbose mode enabled"),
             );
             output::print_item(
                 &style::dim(style::BULLET),
-                &format!("using config: {}", style::bold(config)),
+                &crate::vformat!("using config: {}", style::bold(config)),
             );
         }
 
         output::print_item(
             &style::green(style::CHECK),
-            &format!("running with config '{}'", style::bold(config)),
+            &crate::vformat!("running with config '{}'", style::bold(config)),
         );
-        eprintln!();
+        veprintln!();
         Ok(())
     }
 }

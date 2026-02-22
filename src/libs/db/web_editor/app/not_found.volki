@@ -1,0 +1,24 @@
+//! 404 page handler for the DB web editor.
+
+use crate::libs::db::web_editor::components::sidebar::sidebar_content;
+use crate::libs::web::prelude::*;
+
+pub fn metadata(_req: &Request) -> Metadata {
+    Metadata::new()
+        .title("404 - volki db editor")
+        .description("Page not found")
+}
+
+pub fn page(_req: &Request) -> Html {
+    <Stylesheet href="/styles.css" />
+    <div class="flex-shrink-0 min-h-screen w-[260px] bg-[#161b22] border-r border-[#30363d] py-5">
+        <SidebarContent />
+    </div>
+    <div class="flex-1 overflow-x-auto p-8">
+        <div class="flex flex-col items-center justify-center text-center px-10 py-20 text-gray-400">
+            <div class="text-5xl mb-4 opacity-30">"?"</div>
+            <h3 class="text-xl text-[#e6edf3] mb-2">"Page not found"</h3>
+            <p class="text-sm max-w-[400px] leading-normal">"The page you're looking for doesn't exist."</p>
+        </div>
+    </div>
+}

@@ -1,8 +1,10 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
+use crate::core::volkiwithstds::collections::json::{JsonValue, extract_top_level};
 use crate::libs::lang::shared::license::heuristic::detect_license_from_file;
-use crate::libs::lang::shared::license::parsers::json::{extract_top_level, JsonValue};
 use crate::libs::lang::shared::license::scan_util::finalize_scan;
 use crate::libs::lang::shared::license::types::{
     LicenseCategory, LicenseError, LicenseSource, PackageLicense, ScanConfig, ScanResult,
@@ -15,14 +17,14 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let node_modules = root.join("node_modules");
 
     if !pkg_json_path.exists() {
-        return Err(LicenseError::NoManifest(
-            "No package.json found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(crate::vstr!(
+            "No package.json found in project directory"
+        )));
     }
     if !node_modules.exists() {
-        return Err(LicenseError::NoDependencyDir(
-            "No node_modules directory found (run npm install first)".to_string(),
-        ));
+        return Err(LicenseError::NoDependencyDir(crate::vstr!(
+            "No node_modules directory found (run npm install first)"
+        )));
     }
 
     log_debug!("scanning node_modules at {}", node_modules.display());
@@ -32,7 +34,7 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let root_info = extract_package_info(&root_json);
     let _declared_deps = extract_dependencies(&root_json, config.include_dev);
     let project_name = if root_info.name.is_empty() {
-        "unnamed".to_string()
+        crate::vstr!("unnamed")
     } else {
         root_info.name
     };
@@ -54,10 +56,10 @@ fn walk_node_modules(
     for entry in entries {
         let entry = entry?;
         let name = entry.file_name();
-        let name_str = name.to_string_lossy();
+        let name_str = name;
 
         // Skip hidden dirs and non-directories
-        if name_str.starts_with('.') {
+        if name_str.starts_with(".") {
             continue;
         }
 
@@ -67,14 +69,13 @@ fn walk_node_modules(
         }
 
         // Handle scoped packages (@scope/pkg)
-        if name_str.starts_with('@') {
+        if name_str.starts_with("@") {
             let scope_entries = fs::read_dir(&path)?;
             for scope_entry in scope_entries {
                 let scope_entry = scope_entry?;
                 let scope_path = scope_entry.path();
                 if scope_path.is_dir() {
-                    let scoped_name =
-                        format!("{}/{}", name_str, scope_entry.file_name().to_string_lossy());
+                    let scoped_name = crate::vformat!("{}/{}", name_str, scope_entry.file_name());
                     if let Some(pkg) = read_package(&scope_path, &scoped_name) {
                         packages.push(pkg);
                     }
@@ -93,7 +94,7 @@ fn read_package(dir: &Path, fallback_name: &str) -> Option<PackageLicense> {
     let info = extract_package_info(&json_content);
 
     let name = if info.name.is_empty() {
-        fallback_name.to_string()
+        fallback_name.to_vstring()
     } else {
         info.name
     };
@@ -111,7 +112,7 @@ fn read_package(dir: &Path, fallback_name: &str) -> Option<PackageLicense> {
             Some(l) => (l, LicenseSource::LicenseFile),
             None => {
                 log_warn!("no license found for {}", name);
-                ("UNKNOWN".to_string(), LicenseSource::NotFound)
+                (crate::vstr!("UNKNOWN"), LicenseSource::NotFound)
             }
         },
     };
@@ -142,13 +143,13 @@ fn extract_package_info(json: &str) -> PackageInfo {
         .get("name")
         .and_then(|v| v.as_str())
         .unwrap_or("")
-        .to_string();
+        .to_vstring();
 
     let version = map
         .get("version")
         .and_then(|v| v.as_str())
         .unwrap_or("0.0.0")
-        .to_string();
+        .to_vstring();
 
     // Try "license" field (string)
     if let Some(val) = map.get("license") {
@@ -166,7 +167,7 @@ fn extract_package_info(json: &str) -> PackageInfo {
                     return PackageInfo {
                         name,
                         version,
-                        license: Some(t.to_string()),
+                        license: Some(t.to_vstring()),
                     };
                 }
             }
@@ -181,7 +182,7 @@ fn extract_package_info(json: &str) -> PackageInfo {
             for item in arr {
                 if let Some(obj) = item.as_object() {
                     if let Some(t) = obj.get("type").and_then(|v| v.as_str()) {
-                        parts.push(t.to_string());
+                        parts.push(t.to_vstring());
                     }
                 }
             }
@@ -235,21 +236,21 @@ mod tests {
         let info = extract_package_info(json);
         assert_eq!(info.name, "lodash");
         assert_eq!(info.version, "4.17.21");
-        assert_eq!(info.license, Some("MIT".to_string()));
+        assert_eq!(info.license, Some(crate::vstr!("MIT")));
     }
 
     #[test]
     fn package_info_license_object() {
         let json = r#"{"name": "old-pkg", "version": "1.0.0", "license": {"type": "MIT", "url": "https://..."}}"#;
         let info = extract_package_info(json);
-        assert_eq!(info.license, Some("MIT".to_string()));
+        assert_eq!(info.license, Some(crate::vstr!("MIT")));
     }
 
     #[test]
     fn package_info_licenses_array() {
         let json = r#"{"name": "dual", "version": "1.0.0", "licenses": [{"type": "MIT"}, {"type": "Apache-2.0"}]}"#;
         let info = extract_package_info(json);
-        assert_eq!(info.license, Some("MIT OR Apache-2.0".to_string()));
+        assert_eq!(info.license, Some(crate::vstr!("MIT OR Apache-2.0")));
     }
 
     #[test]
@@ -271,18 +272,20 @@ mod tests {
 
     #[test]
     fn deps_prod_only() {
-        let json = r#"{"dependencies": {"lodash": "^4.0.0"}, "devDependencies": {"jest": "^29.0.0"}}"#;
+        let json =
+            r#"{"dependencies": {"lodash": "^4.0.0"}, "devDependencies": {"jest": "^29.0.0"}}"#;
         let deps = extract_dependencies(json, false);
-        assert!(deps.contains(&"lodash".to_string()));
-        assert!(!deps.contains(&"jest".to_string()));
+        assert!(deps.contains(&crate::vstr!("lodash")));
+        assert!(!deps.contains(&crate::vstr!("jest")));
     }
 
     #[test]
     fn deps_with_dev() {
-        let json = r#"{"dependencies": {"lodash": "^4.0.0"}, "devDependencies": {"jest": "^29.0.0"}}"#;
+        let json =
+            r#"{"dependencies": {"lodash": "^4.0.0"}, "devDependencies": {"jest": "^29.0.0"}}"#;
         let deps = extract_dependencies(json, true);
-        assert!(deps.contains(&"lodash".to_string()));
-        assert!(deps.contains(&"jest".to_string()));
+        assert!(deps.contains(&crate::vstr!("lodash")));
+        assert!(deps.contains(&crate::vstr!("jest")));
     }
 
     #[test]

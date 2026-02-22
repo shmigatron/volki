@@ -1,4 +1,6 @@
-use std::fmt;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
@@ -49,11 +51,15 @@ pub struct TokenizeError {
 
 impl fmt::Display for TokenizeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "tokenize error at {}:{}: {}", self.line, self.col, self.message)
+        write!(
+            f,
+            "tokenize error at {}:{}: {}",
+            self.line, self.col, self.message
+        )
     }
 }
 
-impl std::error::Error for TokenizeError {}
+impl core::error::Error for TokenizeError {}
 
 struct Tokenizer {
     chars: Vec<char>,
@@ -97,35 +103,79 @@ impl Tokenizer {
     }
 
     fn emit(&mut self, kind: TokenKind, text: String, line: usize, col: usize) {
-        self.tokens.push(Token { kind, text, line, col });
+        self.tokens.push(Token {
+            kind,
+            text,
+            line,
+            col,
+        });
     }
 
     fn last_significant_kind(&self) -> Option<&TokenKind> {
-        self.tokens.iter().rev()
-            .find(|t| !matches!(t.kind, TokenKind::Whitespace | TokenKind::Newline | TokenKind::LineComment | TokenKind::BlockComment))
+        self.tokens
+            .iter()
+            .rev()
+            .find(|t| {
+                !matches!(
+                    t.kind,
+                    TokenKind::Whitespace
+                        | TokenKind::Newline
+                        | TokenKind::LineComment
+                        | TokenKind::BlockComment
+                )
+            })
             .map(|t| &t.kind)
     }
 
     fn slash_is_regex(&self) -> bool {
         match self.last_significant_kind() {
             None => true,
-            Some(kind) => matches!(kind,
-                TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace |
-                TokenKind::Comma | TokenKind::Semicolon | TokenKind::Colon |
-                TokenKind::Arrow | TokenKind::Operator | TokenKind::Assignment |
-                TokenKind::QuestionMark | TokenKind::Spread
-            ) || self.last_significant_is_keyword(),
+            Some(kind) => {
+                matches!(
+                    kind,
+                    TokenKind::OpenParen
+                        | TokenKind::OpenBracket
+                        | TokenKind::OpenBrace
+                        | TokenKind::Comma
+                        | TokenKind::Semicolon
+                        | TokenKind::Colon
+                        | TokenKind::Arrow
+                        | TokenKind::Operator
+                        | TokenKind::Assignment
+                        | TokenKind::QuestionMark
+                        | TokenKind::Spread
+                ) || self.last_significant_is_keyword()
+            }
         }
     }
 
     fn last_significant_is_keyword(&self) -> bool {
-        let last = self.tokens.iter().rev()
-            .find(|t| !matches!(t.kind, TokenKind::Whitespace | TokenKind::Newline | TokenKind::LineComment | TokenKind::BlockComment));
+        let last = self.tokens.iter().rev().find(|t| {
+            !matches!(
+                t.kind,
+                TokenKind::Whitespace
+                    | TokenKind::Newline
+                    | TokenKind::LineComment
+                    | TokenKind::BlockComment
+            )
+        });
         match last {
             Some(t) if t.kind == TokenKind::Identifier => {
-                matches!(t.text.as_str(),
-                    "return" | "typeof" | "instanceof" | "in" | "of" | "new" |
-                    "delete" | "void" | "throw" | "case" | "yield" | "await" | "else"
+                matches!(
+                    t.text.as_str(),
+                    "return"
+                        | "typeof"
+                        | "instanceof"
+                        | "in"
+                        | "of"
+                        | "new"
+                        | "delete"
+                        | "void"
+                        | "throw"
+                        | "case"
+                        | "yield"
+                        | "await"
+                        | "else"
                 )
             }
             _ => false,
@@ -188,10 +238,22 @@ impl Tokenizer {
                 '`' => {
                     self.read_template(line, col)?;
                 }
-                '(' => { self.advance(); self.emit(TokenKind::OpenParen, "(".into(), line, col); }
-                ')' => { self.advance(); self.emit(TokenKind::CloseParen, ")".into(), line, col); }
-                '[' => { self.advance(); self.emit(TokenKind::OpenBracket, "[".into(), line, col); }
-                ']' => { self.advance(); self.emit(TokenKind::CloseBracket, "]".into(), line, col); }
+                '(' => {
+                    self.advance();
+                    self.emit(TokenKind::OpenParen, "(".into(), line, col);
+                }
+                ')' => {
+                    self.advance();
+                    self.emit(TokenKind::CloseParen, ")".into(), line, col);
+                }
+                '[' => {
+                    self.advance();
+                    self.emit(TokenKind::OpenBracket, "[".into(), line, col);
+                }
+                ']' => {
+                    self.advance();
+                    self.emit(TokenKind::CloseBracket, "]".into(), line, col);
+                }
                 '{' => {
                     self.advance();
                     if let Some(depth) = self.template_depth.last_mut() {
@@ -211,8 +273,14 @@ impl Tokenizer {
                     self.advance();
                     self.emit(TokenKind::CloseBrace, "}".into(), line, col);
                 }
-                ';' => { self.advance(); self.emit(TokenKind::Semicolon, ";".into(), line, col); }
-                ',' => { self.advance(); self.emit(TokenKind::Comma, ",".into(), line, col); }
+                ';' => {
+                    self.advance();
+                    self.emit(TokenKind::Semicolon, ";".into(), line, col);
+                }
+                ',' => {
+                    self.advance();
+                    self.emit(TokenKind::Comma, ",".into(), line, col);
+                }
                 '?' => {
                     self.advance();
                     if self.peek() == Some('?') {
@@ -223,17 +291,24 @@ impl Tokenizer {
                         } else {
                             self.emit(TokenKind::Operator, "??".into(), line, col);
                         }
-                    } else if self.peek() == Some('.') && !self.peek_at(1).is_some_and(|c| c.is_ascii_digit()) {
+                    } else if self.peek() == Some('.')
+                        && !self.peek_at(1).is_some_and(|c| c.is_ascii_digit())
+                    {
                         self.advance();
                         self.emit(TokenKind::Operator, "?.".into(), line, col);
                     } else {
                         self.emit(TokenKind::QuestionMark, "?".into(), line, col);
                     }
                 }
-                ':' => { self.advance(); self.emit(TokenKind::Colon, ":".into(), line, col); }
+                ':' => {
+                    self.advance();
+                    self.emit(TokenKind::Colon, ":".into(), line, col);
+                }
                 '.' => {
                     if self.peek_at(1) == Some('.') && self.peek_at(2) == Some('.') {
-                        self.advance(); self.advance(); self.advance();
+                        self.advance();
+                        self.advance();
+                        self.advance();
                         self.emit(TokenKind::Spread, "...".into(), line, col);
                     } else if self.peek_at(1).is_some_and(|c| c.is_ascii_digit()) {
                         self.read_number(line, col);
@@ -273,10 +348,13 @@ impl Tokenizer {
                         self.emit(TokenKind::Operator, "!".into(), line, col);
                     }
                 }
-                '<' | '>' => { self.read_comparison(line, col); }
+                '<' | '>' => {
+                    self.read_comparison(line, col);
+                }
                 '+' | '-' => {
                     self.advance();
-                    let s = String::from(ch);
+                    let mut s = String::new();
+                    s.push(ch);
                     if self.peek() == Some(ch) {
                         self.advance();
                         let mut doubled = s.clone();
@@ -360,11 +438,14 @@ impl Tokenizer {
                         self.emit(TokenKind::Operator, "^".into(), line, col);
                     }
                 }
-                '~' => { self.advance(); self.emit(TokenKind::Operator, "~".into(), line, col); }
+                '~' => {
+                    self.advance();
+                    self.emit(TokenKind::Operator, "~".into(), line, col);
+                }
                 '#' => {
                     // Private field prefix — treat as part of identifier
                     self.advance();
-                    let mut ident = "#".to_string();
+                    let mut ident = crate::vstr!("#");
                     while let Some(c) = self.peek() {
                         if c.is_alphanumeric() || c == '_' || c == '$' {
                             ident.push(c);
@@ -378,7 +459,7 @@ impl Tokenizer {
                 '@' => {
                     // Decorator — emit as identifier
                     self.advance();
-                    let mut ident = "@".to_string();
+                    let mut ident = crate::vstr!("@");
                     while let Some(c) = self.peek() {
                         if c.is_alphanumeric() || c == '_' || c == '$' || c == '.' {
                             ident.push(c);
@@ -389,11 +470,15 @@ impl Tokenizer {
                     }
                     self.emit(TokenKind::Identifier, ident, line, col);
                 }
-                '0'..='9' => { self.read_number(line, col); }
-                _ if is_ident_start(ch) => { self.read_identifier(line, col); }
+                '0'..='9' => {
+                    self.read_number(line, col);
+                }
+                _ if is_ident_start(ch) => {
+                    self.read_identifier(line, col);
+                }
                 _ => {
                     self.advance();
-                    self.emit(TokenKind::Operator, ch.to_string(), line, col);
+                    self.emit(TokenKind::Operator, ch.to_vstring(), line, col);
                 }
             }
         }
@@ -462,7 +547,7 @@ impl Tokenizer {
 
     fn read_template(&mut self, line: usize, col: usize) -> Result<(), TokenizeError> {
         self.advance(); // consume `
-        let mut text = String::from('`');
+        let mut text = String::from("`");
         loop {
             match self.advance() {
                 None => {
@@ -494,7 +579,7 @@ impl Tokenizer {
 
     fn read_template_continuation(&mut self, line: usize, col: usize) -> Result<(), TokenizeError> {
         self.advance(); // consume }
-        let mut text = String::from('}');
+        let mut text = String::from("}");
         loop {
             match self.advance() {
                 None => {
@@ -649,7 +734,8 @@ impl Tokenizer {
 
     fn read_comparison(&mut self, line: usize, col: usize) {
         let ch = self.advance().unwrap();
-        let mut text = String::from(ch);
+        let mut text = String::new();
+        text.push(ch);
         if self.peek() == Some(ch) {
             text.push(self.advance().unwrap());
             if ch == '>' && self.peek() == Some('>') {
@@ -685,21 +771,36 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, TokenizeError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vvec;
 
     fn kinds(input: &str) -> Vec<TokenKind> {
-        tokenize(input).unwrap().into_iter().map(|t| t.kind).collect()
+        tokenize(input)
+            .unwrap()
+            .into_iter()
+            .map(|t| t.kind)
+            .collect()
     }
 
     fn texts(input: &str) -> Vec<String> {
-        tokenize(input).unwrap().into_iter().map(|t| t.text).collect()
+        tokenize(input)
+            .unwrap()
+            .into_iter()
+            .map(|t| t.text)
+            .collect()
     }
 
     #[test]
     fn simple_identifiers() {
         let k = kinds("foo bar");
-        assert_eq!(k, vec![
-            TokenKind::Identifier, TokenKind::Whitespace, TokenKind::Identifier, TokenKind::Eof
-        ]);
+        assert_eq!(
+            k,
+            vvec![
+                TokenKind::Identifier,
+                TokenKind::Whitespace,
+                TokenKind::Identifier,
+                TokenKind::Eof
+            ]
+        );
     }
 
     #[test]
@@ -712,18 +813,21 @@ mod tests {
     #[test]
     fn template_literal_no_interpolation() {
         let k = kinds("`hello`");
-        assert_eq!(k, vec![TokenKind::TemplateLiteral, TokenKind::Eof]);
+        assert_eq!(k, vvec![TokenKind::TemplateLiteral, TokenKind::Eof]);
     }
 
     #[test]
     fn template_with_interpolation() {
         let k = kinds("`a${x}b`");
-        assert_eq!(k, vec![
-            TokenKind::TemplateHead,
-            TokenKind::Identifier,
-            TokenKind::TemplateTail,
-            TokenKind::Eof,
-        ]);
+        assert_eq!(
+            k,
+            vvec![
+                TokenKind::TemplateHead,
+                TokenKind::Identifier,
+                TokenKind::TemplateTail,
+                TokenKind::Eof,
+            ]
+        );
     }
 
     #[test]
@@ -780,8 +884,8 @@ mod tests {
     #[test]
     fn comparison_operators() {
         let t = texts("< > <= >= << >> >>>");
-        assert!(t.contains(&"<<<".to_string()) == false);
-        assert!(t.contains(&">>>".to_string()));
+        assert!(t.contains(&crate::vstr!("<<<")) == false);
+        assert!(t.contains(&crate::vstr!(">>>")));
     }
 
     #[test]
@@ -821,7 +925,7 @@ mod tests {
     #[test]
     fn empty_input() {
         let k = kinds("");
-        assert_eq!(k, vec![TokenKind::Eof]);
+        assert_eq!(k, vvec![TokenKind::Eof]);
     }
 
     #[test]

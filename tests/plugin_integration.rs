@@ -2,11 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn tmp(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "volki_plugin_int_{}_{}",
-        std::process::id(),
-        name
-    ));
+    let dir =
+        std::env::temp_dir().join(format!("volki_plugin_int_{}_{}", std::process::id(), name));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     dir
@@ -159,7 +156,10 @@ fn missing_plugin_warns_but_continues() {
         .unwrap();
 
     // Should still succeed (missing plugin is non-fatal)
-    assert!(output.status.success(), "format should succeed even with missing plugin");
+    assert!(
+        output.status.success(),
+        "format should succeed even with missing plugin"
+    );
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -169,7 +169,10 @@ fn missing_plugin_warns_but_continues() {
 
     // File should still be formatted normally
     let result = fs::read_to_string(dir.join("test.js")).unwrap();
-    assert!(result.contains("const x = 1;"), "file should be formatted: {result}");
+    assert!(
+        result.contains("const x = 1;"),
+        "file should be formatted: {result}"
+    );
 
     cleanup(&dir);
 }

@@ -1,0 +1,37 @@
+<idea-plugin>
+  <version>0.1.0</version>
+  <idea-version since-build="241" until-build="253.*" />
+  <id>com.volki.jetbrains</id>
+  <name>Volki Language Support</name>
+  <vendor>volki</vendor>
+  <description><![CDATA[Syntax highlighting, brace matching, and commenter support for
+        <code>.volki</code> files — a language mixing Rust code with RSX
+        (JSX/HTML-like) templating.]]></description>
+  <depends>com.intellij.modules.platform</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Volki" implementationClass="com.volki.jetbrains.VolkiFileType" fieldName="INSTANCE" language="Volki" extensions="volki" />
+    <lang.syntaxHighlighterFactory language="Volki" implementationClass="com.volki.jetbrains.VolkiSyntaxHighlighterFactory" />
+    <lang.braceMatcher language="Volki" implementationClass="com.volki.jetbrains.VolkiBraceMatcher" />
+    <lang.commenter language="Volki" implementationClass="com.volki.jetbrains.VolkiCommenter" />
+    <colorSettingsPage implementation="com.volki.jetbrains.VolkiColorSettingsPage" />
+    <lang.parserDefinition language="Volki" implementationClass="com.volki.jetbrains.VolkiParserDefinition" />
+    <gotoDeclarationHandler implementation="com.volki.jetbrains.VolkiGotoDeclarationHandler" />
+    <lang.documentationProvider language="Volki" implementationClass="com.volki.jetbrains.VolkiDocumentationProvider" />
+    <annotator language="Volki" implementationClass="com.volki.jetbrains.VolkiAnnotator" />
+    <completion.contributor language="Volki" implementationClass="com.volki.jetbrains.VolkiCompletionContributor" />
+    <typedHandler implementation="com.volki.jetbrains.VolkiTypedHandler" />
+    <lang.foldingBuilder language="Volki" implementationClass="com.volki.jetbrains.VolkiFoldingBuilder" />
+    <lang.psiStructureViewFactory language="Volki" implementationClass="com.volki.jetbrains.VolkiStructureViewFactory" />
+    <codeInsight.lineMarkerProvider language="Volki" implementationClass="com.volki.jetbrains.VolkiLineMarkerProvider" />
+    <lang.findUsagesProvider language="Volki" implementationClass="com.volki.jetbrains.VolkiFindUsagesProvider" />
+    <lang.surroundDescriptor language="Volki" implementationClass="com.volki.jetbrains.VolkiSurroundDescriptor" />
+    <lang.formatter language="Volki" implementationClass="com.volki.jetbrains.VolkiFormattingModelBuilder" />
+    <defaultLiveTemplates value="/liveTemplates/Volki" />
+    <liveTemplateContext contextId="VOLKI" implementation="com.volki.jetbrains.VolkiLiveTemplateContext" />
+    <fileIconProvider implementation="com.volki.jetbrains.VolkiFileIconProvider" />
+    <colorProvider implementation="com.volki.jetbrains.VolkiStyleColorProvider" />
+  </extensions>
+  <extensions defaultExtensionNs="com.intellij">
+    <postStartupActivity implementation="com.volki.jetbrains.VolkiTagRenameStartup" />
+  </extensions>
+</idea-plugin>

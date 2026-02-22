@@ -1,6 +1,6 @@
-use std::fmt;
-use std::io;
-use std::path::PathBuf;
+use crate::core::volkiwithstds::io::IoError;
+use crate::core::volkiwithstds::path::PathBuf;
+use core::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ecosystem {
@@ -412,7 +412,7 @@ pub struct DetectedProject {
 
 #[derive(Debug)]
 pub enum DetectError {
-    Io(io::Error),
+    Io(IoError),
     NotADirectory(PathBuf),
 }
 
@@ -420,13 +420,13 @@ impl fmt::Display for DetectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DetectError::Io(err) => write!(f, "I/O error: {err}"),
-            DetectError::NotADirectory(path) => write!(f, "not a directory: {}", path.display()),
+            DetectError::NotADirectory(path) => write!(f, "not a directory: {}", path.as_str()),
         }
     }
 }
 
-impl From<io::Error> for DetectError {
-    fn from(err: io::Error) -> Self {
+impl From<IoError> for DetectError {
+    fn from(err: IoError) -> Self {
         DetectError::Io(err)
     }
 }
@@ -434,28 +434,37 @@ impl From<io::Error> for DetectError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::volkiwithstds::io::IoErrorKind;
 
     #[test]
     fn ecosystem_display() {
-        assert_eq!(format!("{}", Ecosystem::Node), "Node.js");
-        assert_eq!(format!("{}", Ecosystem::Python), "Python");
-        assert_eq!(format!("{}", Ecosystem::Ruby), "Ruby");
-        assert_eq!(format!("{}", Ecosystem::Rust), "Rust");
-        assert_eq!(format!("{}", Ecosystem::Go), "Go");
-        assert_eq!(format!("{}", Ecosystem::Java), "Java");
-        assert_eq!(format!("{}", Ecosystem::DotNet), ".NET");
-        assert_eq!(format!("{}", Ecosystem::Php), "PHP");
-        assert_eq!(format!("{}", Ecosystem::Elixir), "Elixir");
-        assert_eq!(format!("{}", Ecosystem::Swift), "Swift");
-        assert_eq!(format!("{}", Ecosystem::Dart), "Dart");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Node).as_str(), "Node.js");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Python).as_str(), "Python");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Ruby).as_str(), "Ruby");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Rust).as_str(), "Rust");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Go).as_str(), "Go");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Java).as_str(), "Java");
+        assert_eq!(crate::vformat!("{}", Ecosystem::DotNet).as_str(), ".NET");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Php).as_str(), "PHP");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Elixir).as_str(), "Elixir");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Swift).as_str(), "Swift");
+        assert_eq!(crate::vformat!("{}", Ecosystem::Dart).as_str(), "Dart");
     }
 
     #[test]
     fn ecosystem_toml_roundtrip() {
         let ecosystems = [
-            Ecosystem::Node, Ecosystem::Python, Ecosystem::Ruby, Ecosystem::Rust,
-            Ecosystem::Go, Ecosystem::Java, Ecosystem::DotNet, Ecosystem::Php,
-            Ecosystem::Elixir, Ecosystem::Swift, Ecosystem::Dart,
+            Ecosystem::Node,
+            Ecosystem::Python,
+            Ecosystem::Ruby,
+            Ecosystem::Rust,
+            Ecosystem::Go,
+            Ecosystem::Java,
+            Ecosystem::DotNet,
+            Ecosystem::Php,
+            Ecosystem::Elixir,
+            Ecosystem::Swift,
+            Ecosystem::Dart,
         ];
         for eco in &ecosystems {
             let s = eco.as_toml_str();
@@ -470,35 +479,74 @@ mod tests {
 
     #[test]
     fn package_manager_display() {
-        assert_eq!(format!("{}", PackageManager::Npm), "npm");
-        assert_eq!(format!("{}", PackageManager::Yarn), "yarn");
-        assert_eq!(format!("{}", PackageManager::Pnpm), "pnpm");
-        assert_eq!(format!("{}", PackageManager::Bun), "bun");
-        assert_eq!(format!("{}", PackageManager::Pip), "pip");
-        assert_eq!(format!("{}", PackageManager::Pipenv), "pipenv");
-        assert_eq!(format!("{}", PackageManager::Poetry), "poetry");
-        assert_eq!(format!("{}", PackageManager::Uv), "uv");
-        assert_eq!(format!("{}", PackageManager::Bundler), "bundler");
-        assert_eq!(format!("{}", PackageManager::Cargo), "cargo");
-        assert_eq!(format!("{}", PackageManager::GoModules), "go modules");
-        assert_eq!(format!("{}", PackageManager::Maven), "maven");
-        assert_eq!(format!("{}", PackageManager::Gradle), "gradle");
-        assert_eq!(format!("{}", PackageManager::Nuget), "nuget");
-        assert_eq!(format!("{}", PackageManager::Composer), "composer");
-        assert_eq!(format!("{}", PackageManager::Mix), "mix");
-        assert_eq!(format!("{}", PackageManager::Spm), "spm");
-        assert_eq!(format!("{}", PackageManager::Pub), "pub");
+        assert_eq!(crate::vformat!("{}", PackageManager::Npm).as_str(), "npm");
+        assert_eq!(crate::vformat!("{}", PackageManager::Yarn).as_str(), "yarn");
+        assert_eq!(crate::vformat!("{}", PackageManager::Pnpm).as_str(), "pnpm");
+        assert_eq!(crate::vformat!("{}", PackageManager::Bun).as_str(), "bun");
+        assert_eq!(crate::vformat!("{}", PackageManager::Pip).as_str(), "pip");
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Pipenv).as_str(),
+            "pipenv"
+        );
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Poetry).as_str(),
+            "poetry"
+        );
+        assert_eq!(crate::vformat!("{}", PackageManager::Uv).as_str(), "uv");
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Bundler).as_str(),
+            "bundler"
+        );
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Cargo).as_str(),
+            "cargo"
+        );
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::GoModules).as_str(),
+            "go modules"
+        );
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Maven).as_str(),
+            "maven"
+        );
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Gradle).as_str(),
+            "gradle"
+        );
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Nuget).as_str(),
+            "nuget"
+        );
+        assert_eq!(
+            crate::vformat!("{}", PackageManager::Composer).as_str(),
+            "composer"
+        );
+        assert_eq!(crate::vformat!("{}", PackageManager::Mix).as_str(), "mix");
+        assert_eq!(crate::vformat!("{}", PackageManager::Spm).as_str(), "spm");
+        assert_eq!(crate::vformat!("{}", PackageManager::Pub).as_str(), "pub");
     }
 
     #[test]
     fn package_manager_toml_roundtrip() {
         let managers = [
-            PackageManager::Npm, PackageManager::Yarn, PackageManager::Pnpm,
-            PackageManager::Bun, PackageManager::Pip, PackageManager::Pipenv,
-            PackageManager::Poetry, PackageManager::Uv, PackageManager::Bundler,
-            PackageManager::Cargo, PackageManager::GoModules, PackageManager::Maven,
-            PackageManager::Gradle, PackageManager::Nuget, PackageManager::Composer,
-            PackageManager::Mix, PackageManager::Spm, PackageManager::Pub,
+            PackageManager::Npm,
+            PackageManager::Yarn,
+            PackageManager::Pnpm,
+            PackageManager::Bun,
+            PackageManager::Pip,
+            PackageManager::Pipenv,
+            PackageManager::Poetry,
+            PackageManager::Uv,
+            PackageManager::Bundler,
+            PackageManager::Cargo,
+            PackageManager::GoModules,
+            PackageManager::Maven,
+            PackageManager::Gradle,
+            PackageManager::Nuget,
+            PackageManager::Composer,
+            PackageManager::Mix,
+            PackageManager::Spm,
+            PackageManager::Pub,
         ];
         for mgr in &managers {
             let s = mgr.as_toml_str();
@@ -513,35 +561,77 @@ mod tests {
 
     #[test]
     fn framework_display() {
-        assert_eq!(format!("{}", Framework::React), "React");
-        assert_eq!(format!("{}", Framework::NextJs), "Next.js");
-        assert_eq!(format!("{}", Framework::Rails), "Rails");
-        assert_eq!(format!("{}", Framework::Flutter), "Flutter");
-        assert_eq!(format!("{}", Framework::Spring), "Spring Boot");
-        assert_eq!(format!("{}", Framework::FastApi), "FastAPI");
-        assert_eq!(format!("{}", Framework::AspNet), "ASP.NET");
+        assert_eq!(crate::vformat!("{}", Framework::React).as_str(), "React");
+        assert_eq!(crate::vformat!("{}", Framework::NextJs).as_str(), "Next.js");
+        assert_eq!(crate::vformat!("{}", Framework::Rails).as_str(), "Rails");
+        assert_eq!(
+            crate::vformat!("{}", Framework::Flutter).as_str(),
+            "Flutter"
+        );
+        assert_eq!(
+            crate::vformat!("{}", Framework::Spring).as_str(),
+            "Spring Boot"
+        );
+        assert_eq!(
+            crate::vformat!("{}", Framework::FastApi).as_str(),
+            "FastAPI"
+        );
+        assert_eq!(crate::vformat!("{}", Framework::AspNet).as_str(), "ASP.NET");
     }
 
     #[test]
     fn framework_toml_roundtrip() {
         let frameworks = [
-            Framework::React, Framework::NextJs, Framework::Vue, Framework::Nuxt,
-            Framework::Angular, Framework::Svelte, Framework::SvelteKit,
-            Framework::Express, Framework::Fastify, Framework::Nest,
-            Framework::Astro, Framework::Remix, Framework::Gatsby,
-            Framework::Django, Framework::Flask, Framework::FastApi,
-            Framework::Tornado, Framework::Pyramid,
-            Framework::Rails, Framework::Sinatra, Framework::Hanami,
-            Framework::Actix, Framework::Axum, Framework::Rocket,
-            Framework::Tauri, Framework::Leptos, Framework::Yew, Framework::Bevy,
-            Framework::Gin, Framework::Echo, Framework::Fiber,
-            Framework::Chi, Framework::Buffalo,
-            Framework::Spring, Framework::Quarkus, Framework::Micronaut, Framework::Jakarta,
-            Framework::Laravel, Framework::Symfony, Framework::Slim, Framework::CakePhp,
-            Framework::AspNet, Framework::Blazor, Framework::Maui,
-            Framework::Phoenix, Framework::Nerves,
-            Framework::Vapor, Framework::SwiftUi,
-            Framework::Flutter, Framework::AngularDart,
+            Framework::React,
+            Framework::NextJs,
+            Framework::Vue,
+            Framework::Nuxt,
+            Framework::Angular,
+            Framework::Svelte,
+            Framework::SvelteKit,
+            Framework::Express,
+            Framework::Fastify,
+            Framework::Nest,
+            Framework::Astro,
+            Framework::Remix,
+            Framework::Gatsby,
+            Framework::Django,
+            Framework::Flask,
+            Framework::FastApi,
+            Framework::Tornado,
+            Framework::Pyramid,
+            Framework::Rails,
+            Framework::Sinatra,
+            Framework::Hanami,
+            Framework::Actix,
+            Framework::Axum,
+            Framework::Rocket,
+            Framework::Tauri,
+            Framework::Leptos,
+            Framework::Yew,
+            Framework::Bevy,
+            Framework::Gin,
+            Framework::Echo,
+            Framework::Fiber,
+            Framework::Chi,
+            Framework::Buffalo,
+            Framework::Spring,
+            Framework::Quarkus,
+            Framework::Micronaut,
+            Framework::Jakarta,
+            Framework::Laravel,
+            Framework::Symfony,
+            Framework::Slim,
+            Framework::CakePhp,
+            Framework::AspNet,
+            Framework::Blazor,
+            Framework::Maui,
+            Framework::Phoenix,
+            Framework::Nerves,
+            Framework::Vapor,
+            Framework::SwiftUi,
+            Framework::Flutter,
+            Framework::AngularDart,
         ];
         for fw in &frameworks {
             let s = fw.as_toml_str();
@@ -556,21 +646,21 @@ mod tests {
 
     #[test]
     fn detect_error_display_io() {
-        let err = DetectError::Io(io::Error::new(io::ErrorKind::NotFound, "not found"));
-        assert!(format!("{err}").contains("I/O error"));
+        let err = DetectError::Io(IoError::new(IoErrorKind::NotFound, "not found"));
+        assert!(crate::vformat!("{err}").contains("I/O error"));
     }
 
     #[test]
     fn detect_error_display_not_a_directory() {
         let err = DetectError::NotADirectory(PathBuf::from("/tmp/foo"));
-        let msg = format!("{err}");
+        let msg = crate::vformat!("{err}");
         assert!(msg.contains("not a directory"));
         assert!(msg.contains("/tmp/foo"));
     }
 
     #[test]
     fn detect_error_from_io() {
-        let io_err = io::Error::new(io::ErrorKind::PermissionDenied, "denied");
+        let io_err = IoError::new(IoErrorKind::PermissionDenied, "denied");
         let err: DetectError = io_err.into();
         assert!(matches!(err, DetectError::Io(_)));
     }

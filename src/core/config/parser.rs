@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use std::fmt;
+use crate::core::volkiwithstds::collections::{HashMap, String, Vec};
+use core::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -56,11 +56,21 @@ pub struct Table {
 impl Table {
     pub fn get(&self, section: &str, key: &str) -> Option<&Value> {
         let full = if section.is_empty() {
-            key.to_string()
+            String::from(key)
         } else {
-            format!("{section}.{key}")
+            crate::vformat!("{section}.{key}")
         };
         self.entries.get(&full)
+    }
+
+    pub fn has_section(&self, section: &str) -> bool {
+        let prefix = crate::vformat!("{section}.");
+        for key in self.entries.keys() {
+            if key.starts_with(prefix.as_str()) {
+                return true;
+            }
+        }
+        false
     }
 
     #[allow(dead_code)]
@@ -69,12 +79,12 @@ impl Table {
     }
 
     pub fn entries_with_prefix(&self, prefix: &str) -> Vec<(String, String)> {
-        let dot_prefix = format!("{prefix}.");
+        let dot_prefix = crate::vformat!("{prefix}.");
         let mut result = Vec::new();
         for (key, value) in &self.entries {
-            if let Some(suffix) = key.strip_prefix(&dot_prefix) {
+            if let Some(suffix) = key.strip_prefix(dot_prefix.as_str()) {
                 if let Some(s) = value.as_str() {
-                    result.push((suffix.to_string(), s.to_string()));
+                    result.push((String::from(suffix), String::from(s)));
                 }
             }
         }
@@ -101,22 +111,22 @@ pub fn parse(content: &str) -> Result<Table, ParseError> {
     for (i, line) in content.lines().enumerate() {
         let trimmed = line.trim();
 
-        if trimmed.is_empty() || trimmed.starts_with('#') {
+        if trimmed.is_empty() || trimmed.starts_with("#") {
             continue;
         }
 
-        if trimmed.starts_with('[') && !trimmed.starts_with("[[") {
+        if trimmed.starts_with("[") && !trimmed.starts_with("[[") {
             let end = trimmed.find(']').ok_or_else(|| ParseError {
                 line: i + 1,
-                message: "unclosed section header".to_string(),
+                message: String::from("unclosed section header"),
             })?;
-            current_section = trimmed[1..end].trim().to_string();
+            current_section = String::from(trimmed[1..end].trim());
             continue;
         }
 
         let eq = trimmed.find('=').ok_or_else(|| ParseError {
             line: i + 1,
-            message: "expected key = value".to_string(),
+            message: String::from("expected key = value"),
         })?;
 
         let key = trimmed[..eq].trim();
@@ -125,19 +135,19 @@ pub fn parse(content: &str) -> Result<Table, ParseError> {
         if key.is_empty() {
             return Err(ParseError {
                 line: i + 1,
-                message: "empty key".to_string(),
+                message: String::from("empty key"),
             });
         }
 
         let value = parse_value(raw_val).ok_or_else(|| ParseError {
             line: i + 1,
-            message: format!("invalid value: {raw_val}"),
+            message: crate::vformat!("invalid value: {raw_val}"),
         })?;
 
         let full_key = if current_section.is_empty() {
-            key.to_string()
+            String::from(key)
         } else {
-            format!("{}.{key}", current_section)
+            crate::vformat!("{}.{key}", current_section)
         };
 
         entries.insert(full_key, value);
@@ -147,17 +157,17 @@ pub fn parse(content: &str) -> Result<Table, ParseError> {
 }
 
 fn parse_value(raw: &str) -> Option<Value> {
-    if raw.starts_with('[') {
+    if raw.starts_with("[") {
         return parse_array_value(raw);
     }
 
-    if (raw.starts_with('"') && raw.ends_with('"'))
+    if (raw.starts_with("\"") && raw.ends_with('"'))
         || (raw.starts_with('\'') && raw.ends_with('\''))
     {
         if raw.len() < 2 {
             return None;
         }
-        return Some(Value::Str(raw[1..raw.len() - 1].to_string()));
+        return Some(Value::Str(String::from(&raw[1..raw.len() - 1])));
     }
 
     if raw == "true" {
@@ -183,7 +193,7 @@ fn parse_array_value(raw: &str) -> Option<Value> {
         return Some(Value::Array(Vec::new()));
     }
     let mut items = Vec::new();
-    for element in inner.split(',') {
+    for element in inner.split(",") {
         let trimmed = element.trim();
         if trimmed.is_empty() {
             continue;
@@ -297,8 +307,14 @@ mod tests {
 
     #[test]
     fn parse_error_display() {
-        let err = ParseError { line: 3, message: "bad".to_string() };
-        assert_eq!(format!("{err}"), "parse error at line 3: bad");
+        let err = ParseError {
+            line: 3,
+            message: String::from("bad"),
+        };
+        assert_eq!(
+            crate::vformat!("{err}").as_str(),
+            "parse error at line 3: bad"
+        );
     }
 
     #[test]
@@ -306,7 +322,7 @@ mod tests {
         let t = parse("list = [\"a\", \"b\", \"c\"]").unwrap();
         let v = t.get("", "list").unwrap();
         let arr = v.as_str_array().unwrap();
-        assert_eq!(arr, vec!["a", "b", "c"]);
+        assert_eq!(arr.as_slice(), &["a", "b", "c"]);
     }
 
     #[test]
@@ -321,7 +337,25 @@ mod tests {
         let t = parse("[plugins]\nlist = [\"foo\", \"bar\"]").unwrap();
         let v = t.get("plugins", "list").unwrap();
         let arr = v.as_str_array().unwrap();
-        assert_eq!(arr, vec!["foo", "bar"]);
+        assert_eq!(arr.as_slice(), &["foo", "bar"]);
+    }
+
+    #[test]
+    fn has_section_true() {
+        let t = parse("[web]\ndist = \"out\"").unwrap();
+        assert!(t.has_section("web"));
+    }
+
+    #[test]
+    fn has_section_false() {
+        let t = parse("[volki]\nname = \"test\"").unwrap();
+        assert!(!t.has_section("web"));
+    }
+
+    #[test]
+    fn has_section_empty_config() {
+        let t = parse("").unwrap();
+        assert!(!t.has_section("web"));
     }
 
     #[test]
@@ -329,9 +363,10 @@ mod tests {
         let t = parse("[plugins.my-plugin]\nkey1 = \"val1\"\nkey2 = \"val2\"").unwrap();
         let mut entries = t.entries_with_prefix("plugins.my-plugin");
         entries.sort();
-        assert_eq!(entries, vec![
-            ("key1".to_string(), "val1".to_string()),
-            ("key2".to_string(), "val2".to_string()),
-        ]);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].0.as_str(), "key1");
+        assert_eq!(entries[0].1.as_str(), "val1");
+        assert_eq!(entries[1].0.as_str(), "key2");
+        assert_eq!(entries[1].1.as_str(), "val2");
     }
 }

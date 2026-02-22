@@ -1,5 +1,7 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::{Path, PathBuf};
+use crate::vformat;
 
 use crate::log_debug;
 
@@ -26,7 +28,7 @@ pub fn detect(dir: &Path) -> Result<Vec<DetectedProject>, DetectError> {
         return Err(DetectError::NotADirectory(dir.to_path_buf()));
     }
 
-    log_debug!("scanning {}", dir.display());
+    log_debug!("scanning {}", dir.as_str());
 
     let mut projects = Vec::new();
 
@@ -46,11 +48,15 @@ pub fn detect(dir: &Path) -> Result<Vec<DetectedProject>, DetectError> {
 
     for detector in detectors {
         if let Some(project) = detector(dir) {
+            let fw_str = match &project.framework {
+                Some(f) => vformat!(" [{f}]"),
+                None => String::from(""),
+            };
             log_debug!(
                 "detected {} ({}){}",
                 project.ecosystem,
                 project.manager,
-                project.framework.as_ref().map(|f| format!(" [{f}]")).unwrap_or_default()
+                fw_str
             );
             projects.push(project);
         }
@@ -354,7 +360,7 @@ fn detect_dotnet(dir: &Path) -> Option<DetectedProject> {
                 return Some(DetectedProject {
                     ecosystem: Ecosystem::DotNet,
                     manager: PackageManager::Nuget,
-                    manifest: path,
+                    manifest: PathBuf::from(path.as_str()),
                     lock_file: None,
                     framework,
                 });
@@ -366,7 +372,7 @@ fn detect_dotnet(dir: &Path) -> Option<DetectedProject> {
 }
 
 fn detect_dotnet_framework(dir: &Path, manifest: &Path) -> Option<Framework> {
-    let content = fs::read_to_string(manifest).unwrap_or_default();
+    let content = fs::read_to_string(manifest).unwrap_or_else(|_| String::from(""));
     if content.contains("Microsoft.AspNetCore") {
         Some(Framework::AspNet)
     } else if content.contains("Blazor") {
@@ -402,7 +408,8 @@ fn detect_php(dir: &Path) -> Option<DetectedProject> {
 }
 
 fn detect_php_framework(dir: &Path) -> Option<Framework> {
-    if has_file(dir, "artisan") || manifest_contains_dep(dir, "composer.json", "laravel/framework") {
+    if has_file(dir, "artisan") || manifest_contains_dep(dir, "composer.json", "laravel/framework")
+    {
         Some(Framework::Laravel)
     } else if manifest_contains_dep(dir, "composer.json", "symfony/framework-bundle") {
         Some(Framework::Symfony)
@@ -485,14 +492,14 @@ fn detect_dart(dir: &Path) -> Option<DetectedProject> {
         None
     };
 
-    let framework =
-        if has_file(dir, ".metadata") || has_dir(dir, "android") || has_dir(dir, "ios") {
-            Some(Framework::Flutter)
-        } else if manifest_contains_dep(dir, "pubspec.yaml", "angular") {
-            Some(Framework::AngularDart)
-        } else {
-            None
-        };
+    let framework = if has_file(dir, ".metadata") || has_dir(dir, "android") || has_dir(dir, "ios")
+    {
+        Some(Framework::Flutter)
+    } else if manifest_contains_dep(dir, "pubspec.yaml", "angular") {
+        Some(Framework::AngularDart)
+    } else {
+        None
+    };
 
     Some(DetectedProject {
         ecosystem: Ecosystem::Dart,
@@ -506,11 +513,13 @@ fn detect_dart(dir: &Path) -> Option<DetectedProject> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
 
-    fn make_temp_dir(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir()
-            .join(format!("volki_detect_{}_{}", std::process::id(), name));
+    fn make_temp_dir(name: &str) -> PathBuf {
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&vformat!(
+            "volki_detect_{}_{}",
+            crate::core::volkiwithstds::process::id(),
+            name
+        ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
@@ -521,7 +530,7 @@ mod tests {
         if let Some(parent) = path.parent() {
             let _ = fs::create_dir_all(parent);
         }
-        fs::write(&path, "").unwrap();
+        fs::write(&path, &[]).unwrap();
     }
 
     fn write_file(dir: &Path, name: &str, content: &str) {
@@ -529,7 +538,7 @@ mod tests {
         if let Some(parent) = path.parent() {
             let _ = fs::create_dir_all(parent);
         }
-        fs::write(&path, content).unwrap();
+        fs::write(&path, content.as_bytes()).unwrap();
     }
 
     fn cleanup(dir: &Path) {
@@ -545,8 +554,15 @@ mod tests {
         let project = &projects[0];
         assert_eq!(project.ecosystem, Ecosystem::Rust);
         assert_eq!(project.manager, PackageManager::Cargo);
-        assert!(project.manifest.ends_with("Cargo.toml"));
-        assert!(project.lock_file.as_ref().unwrap().ends_with("Cargo.lock"));
+        assert!(project.manifest.as_str().ends_with("Cargo.toml"));
+        assert!(
+            project
+                .lock_file
+                .as_ref()
+                .unwrap()
+                .as_str()
+                .ends_with("Cargo.lock")
+        );
         assert!(project.framework.is_none());
     }
 
@@ -560,7 +576,7 @@ mod tests {
 
     #[test]
     fn detect_nonexistent_dir() {
-        let dir = std::env::temp_dir().join("volki_nonexistent_dir_abc123");
+        let dir = crate::core::volkiwithstds::env::temp_dir().join("volki_nonexistent_dir_abc123");
         assert!(detect(&dir).is_err());
     }
 
@@ -568,7 +584,7 @@ mod tests {
     fn detect_file_not_dir() {
         let dir = make_temp_dir("fileasdir");
         let file_path = dir.join("afile");
-        fs::write(&file_path, "").unwrap();
+        fs::write(&file_path, &[]).unwrap();
         assert!(detect(&file_path).is_err());
         cleanup(&dir);
     }
@@ -652,7 +668,11 @@ mod tests {
     #[test]
     fn detect_node_nextjs() {
         let dir = make_temp_dir("node_next");
-        write_file(&dir, "package.json", r#"{"dependencies": {"next": "^14.0.0", "react": "^18"}}"#);
+        write_file(
+            &dir,
+            "package.json",
+            r#"{"dependencies": {"next": "^14.0.0", "react": "^18"}}"#,
+        );
         let projects = detect(&dir).unwrap();
         assert_eq!(projects[0].framework, Some(Framework::NextJs));
         cleanup(&dir);
@@ -661,7 +681,11 @@ mod tests {
     #[test]
     fn detect_node_react() {
         let dir = make_temp_dir("node_react");
-        write_file(&dir, "package.json", r#"{"dependencies": {"react": "^18.0.0"}}"#);
+        write_file(
+            &dir,
+            "package.json",
+            r#"{"dependencies": {"react": "^18.0.0"}}"#,
+        );
         let projects = detect(&dir).unwrap();
         assert_eq!(projects[0].framework, Some(Framework::React));
         cleanup(&dir);
@@ -670,7 +694,11 @@ mod tests {
     #[test]
     fn detect_node_angular() {
         let dir = make_temp_dir("node_angular");
-        write_file(&dir, "package.json", r#"{"dependencies": {"@angular/core": "^17"}}"#);
+        write_file(
+            &dir,
+            "package.json",
+            r#"{"dependencies": {"@angular/core": "^17"}}"#,
+        );
         let projects = detect(&dir).unwrap();
         assert_eq!(projects[0].framework, Some(Framework::Angular));
         cleanup(&dir);
@@ -679,7 +707,11 @@ mod tests {
     #[test]
     fn detect_node_express() {
         let dir = make_temp_dir("node_express");
-        write_file(&dir, "package.json", r#"{"dependencies": {"express": "^4"}}"#);
+        write_file(
+            &dir,
+            "package.json",
+            r#"{"dependencies": {"express": "^4"}}"#,
+        );
         let projects = detect(&dir).unwrap();
         assert_eq!(projects[0].framework, Some(Framework::Express));
         cleanup(&dir);
@@ -902,7 +934,10 @@ mod tests {
         touch(&dir, "pom.xml");
         let projects = detect(&dir).unwrap();
         // Only one Java project should be detected, and Gradle takes priority
-        let java_projects: Vec<_> = projects.iter().filter(|p| p.ecosystem == Ecosystem::Java).collect();
+        let java_projects: Vec<_> = projects
+            .iter()
+            .filter(|p| p.ecosystem == Ecosystem::Java)
+            .collect();
         assert_eq!(java_projects.len(), 1);
         assert_eq!(java_projects[0].manager, PackageManager::Gradle);
         cleanup(&dir);
@@ -911,7 +946,11 @@ mod tests {
     #[test]
     fn detect_java_spring() {
         let dir = make_temp_dir("java_spring");
-        write_file(&dir, "pom.xml", "<dependency>spring-boot-starter</dependency>\n");
+        write_file(
+            &dir,
+            "pom.xml",
+            "<dependency>spring-boot-starter</dependency>\n",
+        );
         let projects = detect(&dir).unwrap();
         assert_eq!(projects[0].framework, Some(Framework::Spring));
         cleanup(&dir);
@@ -941,7 +980,11 @@ mod tests {
     #[test]
     fn detect_dotnet_aspnet() {
         let dir = make_temp_dir("dotnet_aspnet");
-        write_file(&dir, "MyApp.csproj", "<PackageReference Include=\"Microsoft.AspNetCore.App\" />\n");
+        write_file(
+            &dir,
+            "MyApp.csproj",
+            "<PackageReference Include=\"Microsoft.AspNetCore.App\" />\n",
+        );
         let projects = detect(&dir).unwrap();
         assert_eq!(projects[0].framework, Some(Framework::AspNet));
         cleanup(&dir);
@@ -1032,7 +1075,11 @@ mod tests {
     #[test]
     fn detect_swift_vapor() {
         let dir = make_temp_dir("swift_vapor");
-        write_file(&dir, "Package.swift", ".package(url: \"https://github.com/vapor/vapor.git\")\n");
+        write_file(
+            &dir,
+            "Package.swift",
+            ".package(url: \"https://github.com/vapor/vapor.git\")\n",
+        );
         let projects = detect(&dir).unwrap();
         assert_eq!(projects[0].framework, Some(Framework::Vapor));
         cleanup(&dir);
@@ -1078,9 +1125,10 @@ mod tests {
         touch(&dir, "Cargo.toml");
         let projects = detect(&dir).unwrap();
         assert_eq!(projects.len(), 2);
-        let ecosystems: Vec<_> = projects.iter().map(|p| &p.ecosystem).collect();
-        assert!(ecosystems.contains(&&Ecosystem::Node));
-        assert!(ecosystems.contains(&&Ecosystem::Rust));
+        let has_node = projects.iter().any(|p| p.ecosystem == Ecosystem::Node);
+        let has_rust = projects.iter().any(|p| p.ecosystem == Ecosystem::Rust);
+        assert!(has_node);
+        assert!(has_rust);
         cleanup(&dir);
     }
 }

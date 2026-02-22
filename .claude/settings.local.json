@@ -4,7 +4,12 @@
       "WebSearch",
       "WebFetch(domain:prettier.io)",
       "Bash(cargo test:*)",
-      "Bash(cargo build:*)"
+      "Bash(cargo build:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(ls:*)",
+      "Bash(cargo check:*)"
     ]
   }
 }

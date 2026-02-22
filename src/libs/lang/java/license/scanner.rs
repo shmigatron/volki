@@ -1,13 +1,13 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::{Path, PathBuf};
 
-use crate::libs::lang::shared::license::parsers::xml_extract::{
-    parse_maven_dependencies, parse_pom_license,
-};
 use crate::libs::lang::shared::license::scan_util::{finalize_scan, home_dir};
 use crate::libs::lang::shared::license::types::{
     LicenseCategory, LicenseError, LicenseSource, PackageLicense, ScanConfig, ScanResult,
 };
+use crate::libs::lang::shared::license::xml::{parse_maven_dependencies, parse_pom_license};
 
 pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let root = Path::new(&config.path);
@@ -16,14 +16,18 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let is_gradle = root.join("build.gradle").exists() || root.join("build.gradle.kts").exists();
 
     if !is_maven && !is_gradle {
-        return Err(LicenseError::NoManifest(
-            "No pom.xml or build.gradle found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(crate::vstr!(
+            "No pom.xml or build.gradle found in project directory"
+        )));
     }
 
     let m2_repo = home_dir().map(|h| h.join(".m2").join("repository"));
-    let gradle_cache = home_dir()
-        .map(|h| h.join(".gradle").join("caches").join("modules-2").join("files-2.1"));
+    let gradle_cache = home_dir().map(|h| {
+        h.join(".gradle")
+            .join("caches")
+            .join("modules-2")
+            .join("files-2.1")
+    });
 
     if is_maven {
         scan_maven(root, config, &m2_repo, &gradle_cache)
@@ -52,7 +56,7 @@ fn scan_maven(
         let category = LicenseCategory::from_license_str(&license);
 
         packages.push(PackageLicense {
-            name: format!("{group_id}:{artifact_id}"),
+            name: crate::vformat!("{group_id}:{artifact_id}"),
             version: resolved_version,
             license,
             category,
@@ -87,7 +91,7 @@ fn scan_gradle(
         let category = LicenseCategory::from_license_str(&license);
 
         packages.push(PackageLicense {
-            name: format!("{group_id}:{artifact_id}"),
+            name: crate::vformat!("{group_id}:{artifact_id}"),
             version: resolved_version,
             license,
             category,
@@ -116,9 +120,9 @@ fn find_java_license(
     }
 
     (
-        "UNKNOWN".to_string(),
+        crate::vstr!("UNKNOWN"),
         LicenseSource::NotFound,
-        version.to_string(),
+        version.to_vstring(),
     )
 }
 
@@ -153,7 +157,7 @@ fn find_in_gradle_cache(
 
     let resolved_version = version_dir
         .file_name()
-        .map(|n| n.to_string_lossy().to_string())
+        .map(|n| n.to_vstring())
         .unwrap_or_default();
 
     if let Ok(hash_entries) = fs::read_dir(&version_dir) {
@@ -168,7 +172,11 @@ fn find_in_gradle_cache(
                     if path.extension().is_some_and(|e| e == "pom") {
                         if let Ok(content) = fs::read_to_string(&path) {
                             if let Some(license) = parse_pom_license(&content) {
-                                return Some((license, LicenseSource::MetadataFile, resolved_version));
+                                return Some((
+                                    license,
+                                    LicenseSource::MetadataFile,
+                                    resolved_version,
+                                ));
                             }
                         }
                     }
@@ -201,15 +209,12 @@ fn find_in_m2_repo(
 
     let version_str;
     if !version.is_empty() {
-        version_str = version.to_string();
+        version_str = version.to_vstring();
     } else {
         let dir = pick_latest_version_dir(&artifact_dir);
         match dir {
             Some(d) => {
-                version_str = d
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
+                version_str = d.file_name().map(|n| n.to_vstring()).unwrap_or_default();
             }
             None => return None,
         }
@@ -217,7 +222,7 @@ fn find_in_m2_repo(
 
     let pom_path = artifact_dir
         .join(&version_str)
-        .join(format!("{artifact_id}-{version_str}.pom"));
+        .join(&crate::vformat!("{artifact_id}-{version_str}.pom"));
 
     if let Ok(content) = fs::read_to_string(&pom_path) {
         if let Some(license) = parse_pom_license(&content) {
@@ -238,7 +243,7 @@ fn pick_latest_version_dir(artifact_dir: &Path) -> Option<PathBuf> {
     let mut versions: Vec<PathBuf> = entries
         .flatten()
         .filter(|e| e.path().is_dir())
-        .map(|e| e.path())
+        .map(|e| e.path().to_path_buf())
         .collect();
 
     if versions.is_empty() {
@@ -250,21 +255,22 @@ fn pick_latest_version_dir(artifact_dir: &Path) -> Option<PathBuf> {
 }
 
 fn extract_maven_project_name(pom_content: &str) -> String {
-    use crate::libs::lang::shared::license::parsers::xml_extract::extract_tag_contents;
+    use crate::core::volkiwithstds::collections::xml::Xml;
+    let xml = Xml::new(pom_content);
 
-    let names = extract_tag_contents(pom_content, "name");
+    let names = xml.tag_contents("name");
     if let Some(name) = names.first() {
         if !name.is_empty() && !name.contains("${") {
             return name.clone();
         }
     }
 
-    let artifacts = extract_tag_contents(pom_content, "artifactId");
+    let artifacts = xml.tag_contents("artifactId");
     if let Some(id) = artifacts.first() {
         return id.clone();
     }
 
-    "unnamed".to_string()
+    crate::vstr!("unnamed")
 }
 
 /// Parse Gradle dependency declarations from build.gradle or build.gradle.kts.
@@ -280,8 +286,7 @@ fn parse_gradle_dependencies(content: &str, include_dev: bool) -> Vec<(String, S
     for line in content.lines() {
         let trimmed = line.trim();
 
-        let is_test = trimmed.starts_with("test")
-            || trimmed.starts_with("androidTest");
+        let is_test = trimmed.starts_with("test") || trimmed.starts_with("androidTest");
 
         if is_test && !include_dev {
             continue;
@@ -321,15 +326,15 @@ fn parse_gradle_dependencies(content: &str, include_dev: bool) -> Vec<(String, S
             };
 
             // Parse "group:artifact:version" or "group:artifact"
-            let parts: Vec<&str> = dep_str.split(':').collect();
+            let parts: Vec<&str> = dep_str.split(":").collect();
             if parts.len() >= 3 {
                 deps.push((
-                    parts[0].to_string(),
-                    parts[1].to_string(),
-                    parts[2].to_string(),
+                    parts[0].to_vstring(),
+                    parts[1].to_vstring(),
+                    parts[2].to_vstring(),
                 ));
             } else if parts.len() == 2 {
-                deps.push((parts[0].to_string(), parts[1].to_string(), String::new()));
+                deps.push((parts[0].to_vstring(), parts[1].to_vstring(), String::new()));
             }
             break;
         }
@@ -351,7 +356,7 @@ fn extract_quoted_string(s: &str) -> Option<String> {
 
     let after = &s[start + 1..];
     let end = after.find(quote)?;
-    Some(after[..end].to_string())
+    Some(after[..end].to_vstring())
 }
 
 // --- Tests ---
@@ -367,7 +372,14 @@ mod tests {
         let content = "    implementation 'com.google.guava:guava:33.0.0-jre'";
         let deps = parse_gradle_dependencies(content, false);
         assert_eq!(deps.len(), 1);
-        assert_eq!(deps[0], ("com.google.guava".to_string(), "guava".to_string(), "33.0.0-jre".to_string()));
+        assert_eq!(
+            deps[0],
+            (
+                crate::vstr!("com.google.guava"),
+                crate::vstr!("guava"),
+                crate::vstr!("33.0.0-jre")
+            )
+        );
     }
 
     #[test]
@@ -446,12 +458,18 @@ mod tests {
 
     #[test]
     fn extract_double_quoted() {
-        assert_eq!(extract_quoted_string("\"hello\""), Some("hello".to_string()));
+        assert_eq!(
+            extract_quoted_string("\"hello\""),
+            Some(crate::vstr!("hello"))
+        );
     }
 
     #[test]
     fn extract_single_quoted() {
-        assert_eq!(extract_quoted_string("'hello'"), Some("hello".to_string()));
+        assert_eq!(
+            extract_quoted_string("'hello'"),
+            Some(crate::vstr!("hello"))
+        );
     }
 
     #[test]
@@ -461,7 +479,10 @@ mod tests {
 
     #[test]
     fn extract_with_prefix() {
-        assert_eq!(extract_quoted_string("= \"value\""), Some("value".to_string()));
+        assert_eq!(
+            extract_quoted_string("= \"value\""),
+            Some(crate::vstr!("value"))
+        );
     }
 }
 
@@ -476,8 +497,8 @@ fn read_gradle_project_name(root: &Path) -> String {
     } else {
         return root
             .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| "unnamed".to_string());
+            .map(|n| n.to_vstring())
+            .unwrap_or_else(|| crate::vstr!("unnamed"));
     };
 
     if let Ok(content) = fs::read_to_string(&path) {
@@ -492,6 +513,6 @@ fn read_gradle_project_name(root: &Path) -> String {
     }
 
     root.file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unnamed".to_string())
+        .map(|n| n.to_vstring())
+        .unwrap_or_else(|| crate::vstr!("unnamed"))
 }

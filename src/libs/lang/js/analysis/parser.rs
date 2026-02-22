@@ -1,11 +1,13 @@
-use crate::libs::lang::js::formatter::tokenizer::{Token, TokenKind, tokenize};
-
 use super::types::{Export, ExportKind, Import, ImportedSymbols};
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::libs::lang::js::formatter::tokenizer::{Token, TokenKind, tokenize};
+use crate::vvec;
 
 pub fn parse_imports_exports(source: &str) -> (Vec<Import>, Vec<Export>) {
     let tokens = match tokenize(source) {
         Ok(t) => t,
-        Err(_) => return (vec![], vec![]),
+        Err(_) => return (vvec![], vvec![]),
     };
 
     let significant: Vec<&Token> = tokens
@@ -168,10 +170,7 @@ fn parse_import(tokens: &[&Token], start: usize) -> Option<(Import, usize)> {
                 }
             }
             // import default, * as ns from "source"
-            if i < tokens.len()
-                && tokens[i].kind == TokenKind::Operator
-                && tokens[i].text == "*"
-            {
+            if i < tokens.len() && tokens[i].kind == TokenKind::Operator && tokens[i].text == "*" {
                 i += 1; // skip *
                 if i < tokens.len()
                     && tokens[i].kind == TokenKind::Identifier
@@ -215,7 +214,7 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
     let line = tokens[start].line;
     let mut i = start + 1;
     if i >= tokens.len() {
-        return (vec![], i);
+        return (vvec![], i);
     }
 
     // export default
@@ -232,8 +231,8 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
             i += 1;
         }
         return (
-            vec![Export {
-                name: "default".to_string(),
+            vvec![Export {
+                name: crate::vstr!("default"),
                 kind: ExportKind::Default,
                 line,
             }],
@@ -246,15 +245,15 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
         i += 1;
         if let Some((source, next)) = consume_from(tokens, i) {
             return (
-                vec![Export {
-                    name: "*".to_string(),
+                vvec![Export {
+                    name: crate::vstr!("*"),
                     kind: ExportKind::ReexportFrom(source),
                     line,
                 }],
                 next,
             );
         }
-        return (vec![], i);
+        return (vvec![], i);
     }
 
     // export { a, b } or export { a, b } from "source"
@@ -322,7 +321,7 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
                     let name = tokens[i].text.clone();
                     i += 1;
                     return (
-                        vec![Export {
+                        vvec![Export {
                             name,
                             kind: ExportKind::Named,
                             line,
@@ -344,7 +343,7 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
                     let name = tokens[i].text.clone();
                     i += 1;
                     return (
-                        vec![Export {
+                        vvec![Export {
                             name,
                             kind: ExportKind::Named,
                             line,
@@ -371,7 +370,7 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
                         let name = tokens[i].text.clone();
                         i += 1;
                         return (
-                            vec![Export {
+                            vvec![Export {
                                 name,
                                 kind: ExportKind::Named,
                                 line,
@@ -395,7 +394,7 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
                     let name = tokens[i].text.clone();
                     i += 1;
                     return (
-                        vec![Export {
+                        vvec![Export {
                             name,
                             kind: ExportKind::Named,
                             line,
@@ -408,7 +407,7 @@ fn parse_export(tokens: &[&Token], start: usize) -> (Vec<Export>, usize) {
         }
     }
 
-    (vec![], i)
+    (vvec![], i)
 }
 
 fn parse_require(tokens: &[&Token], start: usize) -> Option<(Import, usize)> {
@@ -451,17 +450,12 @@ fn parse_named_bindings(tokens: &[&Token], start: usize) -> (Vec<String>, usize)
             let mut name = tokens[i].text.clone();
             i += 1;
             // Skip inline `type` keyword: import { type Foo } from '...'
-            if name == "type"
-                && i < tokens.len()
-                && tokens[i].kind == TokenKind::Identifier
-            {
+            if name == "type" && i < tokens.len() && tokens[i].kind == TokenKind::Identifier {
                 name = tokens[i].text.clone();
                 i += 1;
             }
             // Handle `as alias`
-            if i < tokens.len()
-                && tokens[i].kind == TokenKind::Identifier
-                && tokens[i].text == "as"
+            if i < tokens.len() && tokens[i].kind == TokenKind::Identifier && tokens[i].text == "as"
             {
                 i += 1; // skip "as"
                 if i < tokens.len() && tokens[i].kind == TokenKind::Identifier {
@@ -498,10 +492,10 @@ fn consume_from(tokens: &[&Token], start: usize) -> Option<(String, usize)> {
 
 fn unquote(s: &str) -> String {
     let s = s.trim();
-    if (s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')) {
-        s[1..s.len() - 1].to_string()
+    if (s.starts_with("\"") && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')) {
+        s[1..s.len() - 1].to_vstring()
     } else {
-        s.to_string()
+        s.to_vstring()
     }
 }
 
@@ -527,13 +521,12 @@ mod tests {
 
     #[test]
     fn named_imports() {
-        let (imports, _) =
-            parse_imports_exports(r#"import { useState, useEffect } from "react";"#);
+        let (imports, _) = parse_imports_exports(r#"import { useState, useEffect } from "react";"#);
         assert_eq!(imports.len(), 1);
         if let ImportedSymbols::Named(ref names) = imports[0].symbols {
             assert_eq!(names.len(), 2);
-            assert!(names.contains(&"useState".to_string()));
-            assert!(names.contains(&"useEffect".to_string()));
+            assert!(names.contains(&crate::vstr!("useState")));
+            assert!(names.contains(&crate::vstr!("useEffect")));
         } else {
             panic!("expected Named");
         }
@@ -621,11 +614,11 @@ mod tests {
 
     #[test]
     fn named_import_with_alias() {
-        let (imports, _) =
-            parse_imports_exports(r#"import { default as React } from "react";"#);
+        let (imports, _) = parse_imports_exports(r#"import { default as React } from "react";"#);
         assert_eq!(imports.len(), 1);
         if let ImportedSymbols::Named(ref names) = imports[0].symbols {
-            assert_eq!(names, &["React"]);
+            assert_eq!(names.len(), 1);
+            assert_eq!(names[0], "React");
         } else {
             panic!("expected Named");
         }
@@ -640,8 +633,7 @@ mod tests {
 
     #[test]
     fn type_import() {
-        let (imports, _) =
-            parse_imports_exports(r#"import type { Foo } from "./types";"#);
+        let (imports, _) = parse_imports_exports(r#"import type { Foo } from "./types";"#);
         assert_eq!(imports.len(), 1);
         assert_eq!(imports[0].source, "./types");
     }

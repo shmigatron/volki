@@ -169,5 +169,8 @@
   },
   "background": {
     "decoration": "windows"
+  },
+  "banner": {
+    "content": "still building this, full of bugs, dont bother to try it unless ur stupid lol"
   }
 }

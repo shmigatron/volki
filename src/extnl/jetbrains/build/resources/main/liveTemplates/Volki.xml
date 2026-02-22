@@ -1,0 +1,77 @@
+<templateSet group="Volki">
+    <template name="comp" value="pub fn $NAME$(req: &amp;Request) -&gt; Html {&#10;    $END$&#10;}" description="Volki page component" toReformat="true" toShortenFQNames="false">
+        <variable name="NAME" expression="" defaultValue="&quot;MyComponent&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="div" value="&lt;div class=&quot;$CLASS$&quot;&gt;&#10;    $END$&#10;&lt;/div&gt;" description="div with class" toReformat="true" toShortenFQNames="false">
+        <variable name="CLASS" expression="" defaultValue="&quot;container&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="rsx" value="&lt;$TAG$&gt;&#10;    $END$&#10;&lt;/$TAG$&gt;" description="RSX tag pair" toReformat="true" toShortenFQNames="false">
+        <variable name="TAG" expression="" defaultValue="&quot;div&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="map" value="{$LIST$.iter().map(|$ITEM$| {&#10;    $END$&#10;})}" description="Iterator map with RSX" toReformat="true" toShortenFQNames="false">
+        <variable name="LIST" expression="" defaultValue="&quot;items&quot;" alwaysStopAt="true"/>
+        <variable name="ITEM" expression="" defaultValue="&quot;item&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="ifr" value="{if $COND$ {&#10;    $END$&#10;}}" description="Conditional RSX rendering" toReformat="true" toShortenFQNames="false">
+        <variable name="COND" expression="" defaultValue="&quot;is_visible&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="form" value="&lt;form action=&quot;$ACTION$&quot; method=&quot;$METHOD$&quot;&gt;&#10;    $END$&#10;    &lt;button type=&quot;submit&quot;&gt;Submit&lt;/button&gt;&#10;&lt;/form&gt;" description="Form with submit button" toReformat="true" toShortenFQNames="false">
+        <variable name="ACTION" expression="" defaultValue="&quot;/submit&quot;" alwaysStopAt="true"/>
+        <variable name="METHOD" expression="" defaultValue="&quot;POST&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="table" value="&lt;table class=&quot;$CLASS$&quot;&gt;&#10;    &lt;thead&gt;&#10;        &lt;tr&gt;&#10;            &lt;th&gt;$HEADER$&lt;/th&gt;&#10;        &lt;/tr&gt;&#10;    &lt;/thead&gt;&#10;    &lt;tbody&gt;&#10;        $END$&#10;    &lt;/tbody&gt;&#10;&lt;/table&gt;" description="Table with header" toReformat="true" toShortenFQNames="false">
+        <variable name="CLASS" expression="" defaultValue="&quot;data-table&quot;" alwaysStopAt="true"/>
+        <variable name="HEADER" expression="" defaultValue="&quot;Column&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="a" value="&lt;a href=&quot;$HREF$&quot;&gt;$TEXT$&lt;/a&gt;" description="Anchor link" toReformat="true" toShortenFQNames="false">
+        <variable name="HREF" expression="" defaultValue="&quot;/&quot;" alwaysStopAt="true"/>
+        <variable name="TEXT" expression="" defaultValue="&quot;Link&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="input" value="&lt;input type=&quot;$TYPE$&quot; name=&quot;$NAME$&quot; placeholder=&quot;$PLACEHOLDER$&quot; /&gt;" description="Input field" toReformat="true" toShortenFQNames="false">
+        <variable name="TYPE" expression="" defaultValue="&quot;text&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;field&quot;" alwaysStopAt="true"/>
+        <variable name="PLACEHOLDER" expression="" defaultValue="&quot;Enter value...&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+
+    <template name="stru" value="struct $NAME$ {&#10;    $END$&#10;}" description="Struct definition" toReformat="true" toShortenFQNames="false">
+        <variable name="NAME" expression="" defaultValue="&quot;MyStruct&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="VOLKI" value="true"/>
+        </context>
+    </template>
+</templateSet>

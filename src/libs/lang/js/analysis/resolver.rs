@@ -1,17 +1,12 @@
-use std::path::{Path, PathBuf};
+use crate::core::volkiwithstds::path::{Path, PathBuf};
 
 const EXTENSIONS: &[&str] = &["ts", "tsx", "js", "jsx", "mjs", "cjs"];
-const INDEX_FILES: &[&str] = &[
-    "index.ts",
-    "index.tsx",
-    "index.js",
-    "index.jsx",
-];
+const INDEX_FILES: &[&str] = &["index.ts", "index.tsx", "index.js", "index.jsx"];
 
 /// Resolve a relative import specifier to an absolute file path.
 /// Returns None for bare specifiers (npm packages like "react").
 pub fn resolve_import(source: &str, from_file: &Path) -> Option<PathBuf> {
-    if !source.starts_with('.') && !source.starts_with('/') {
+    if !source.starts_with(".") && !source.starts_with("/") {
         return None;
     }
 
@@ -54,12 +49,12 @@ fn normalize(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
+    use crate::core::volkiwithstds::fs;
 
     fn make_temp_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_resolver_{}_{name}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -119,7 +114,7 @@ mod tests {
         let resolved = resolve_import("./components", &from);
         assert!(resolved.is_some());
         let resolved = resolved.unwrap();
-        assert!(resolved.to_string_lossy().contains("index.ts"));
+        assert!(resolved.contains("index.ts"));
         cleanup(&dir);
     }
 

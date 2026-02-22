@@ -1,3 +1,5 @@
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
 /// Parse Cargo.lock `[[package]]` entries into (name, version) pairs.
 pub fn parse_cargo_lock_packages(content: &str) -> Vec<(String, String)> {
     let mut packages = Vec::new();
@@ -32,13 +34,13 @@ pub fn parse_cargo_lock_packages(content: &str) -> Vec<(String, String)> {
 
 /// Extract a string value from a `key = "value"` TOML line.
 pub fn extract_toml_string_value(content: &str, key: &str) -> Option<String> {
-    let prefix = format!("{key} = ");
+    let prefix = crate::vformat!("{key} = ");
     for line in content.lines() {
         let trimmed = line.trim();
-        if let Some(rest) = trimmed.strip_prefix(&prefix) {
+        if let Some(rest) = trimmed.strip_prefix(prefix.as_str()) {
             let rest = rest.trim();
-            if rest.starts_with('"') && rest.ends_with('"') && rest.len() >= 2 {
-                return Some(rest[1..rest.len() - 1].to_string());
+            if rest.starts_with("\"") && rest.ends_with('"') && rest.len() >= 2 {
+                return Some(rest[1..rest.len() - 1].to_vstring());
             }
         }
     }
@@ -46,11 +48,11 @@ pub fn extract_toml_string_value(content: &str, key: &str) -> Option<String> {
 }
 
 fn extract_toml_line_value(line: &str, key: &str) -> Option<String> {
-    let prefix = format!("{key} = ");
-    if let Some(rest) = line.strip_prefix(&prefix) {
+    let prefix = crate::vformat!("{key} = ");
+    if let Some(rest) = line.strip_prefix(prefix.as_str()) {
         let rest = rest.trim();
-        if rest.starts_with('"') && rest.ends_with('"') && rest.len() >= 2 {
-            return Some(rest[1..rest.len() - 1].to_string());
+        if rest.starts_with("\"") && rest.ends_with('"') && rest.len() >= 2 {
+            return Some(rest[1..rest.len() - 1].to_vstring());
         }
     }
     None
@@ -75,7 +77,7 @@ version = "1.0.200"
 "#;
         let pkgs = parse_cargo_lock_packages(content);
         assert_eq!(pkgs.len(), 1);
-        assert_eq!(pkgs[0], ("serde".to_string(), "1.0.200".to_string()));
+        assert_eq!(pkgs[0], (crate::vstr!("serde"), crate::vstr!("1.0.200")));
     }
 
     #[test]
@@ -104,7 +106,7 @@ checksum = "abc123"
 "#;
         let pkgs = parse_cargo_lock_packages(content);
         assert_eq!(pkgs.len(), 1);
-        assert_eq!(pkgs[0], ("serde".to_string(), "1.0.200".to_string()));
+        assert_eq!(pkgs[0], (crate::vstr!("serde"), crate::vstr!("1.0.200")));
     }
 
     #[test]
@@ -175,13 +177,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
     #[test]
     fn toml_string_simple() {
         let content = "name = \"hello\"";
-        assert_eq!(extract_toml_string_value(content, "name"), Some("hello".to_string()));
+        assert_eq!(
+            extract_toml_string_value(content, "name"),
+            Some(crate::vstr!("hello"))
+        );
     }
 
     #[test]
     fn toml_string_with_spaces() {
         let content = "  name = \"hello\"  ";
-        assert_eq!(extract_toml_string_value(content, "name"), Some("hello".to_string()));
+        assert_eq!(
+            extract_toml_string_value(content, "name"),
+            Some(crate::vstr!("hello"))
+        );
     }
 
     #[test]
@@ -199,18 +207,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
     #[test]
     fn toml_string_first_match_wins() {
         let content = "name = \"first\"\nname = \"second\"";
-        assert_eq!(extract_toml_string_value(content, "name"), Some("first".to_string()));
+        assert_eq!(
+            extract_toml_string_value(content, "name"),
+            Some(crate::vstr!("first"))
+        );
     }
 
     #[test]
     fn toml_string_empty_value() {
         let content = "name = \"\"";
-        assert_eq!(extract_toml_string_value(content, "name"), Some("".to_string()));
+        assert_eq!(
+            extract_toml_string_value(content, "name"),
+            Some(crate::vstr!(""))
+        );
     }
 
     #[test]
     fn toml_string_license_field() {
         let content = "[package]\nname = \"mylib\"\nversion = \"0.1.0\"\nlicense = \"MIT\"";
-        assert_eq!(extract_toml_string_value(content, "license"), Some("MIT".to_string()));
+        assert_eq!(
+            extract_toml_string_value(content, "license"),
+            Some(crate::vstr!("MIT"))
+        );
     }
 }

@@ -1,0 +1,139 @@
+/// Special Compiler Elements & Server Types
+///
+/// These are special tags handled by the RSX compiler and the server/routing types.
+
+// --- Special Compiler Elements ---
+// These tags are recognized by the RSX compiler and transformed at compile time.
+// They are NOT regular HTML elements and do NOT appear in the runtime element registry.
+
+/// `<Style>` — Compiler element for scoped CSS.
+///
+/// Content inside `<Style>` is extracted at compile time, processed through
+/// the volkistyle CSS compiler, and injected into the document head.
+///
+/// ```
+/// <Style>
+///   .container { max-width: 1200px; margin: 0 auto; }
+///   .title { color: blue; }
+/// </Style>
+/// ```
+pub struct Style
+
+/// `<Head>` — Compiler element for injecting nodes into `<head>`.
+///
+/// Children of `<Head>` are moved to the document's `<head>` section at compile time.
+///
+/// ```
+/// <Head>
+///   <meta name="author" content="Volki" />
+///   <link rel="preconnect" href="https://fonts.googleapis.com" />
+/// </Head>
+/// ```
+pub struct Head
+
+/// `<Stylesheet>` — Compiler element for linking external stylesheets.
+///
+/// Generates a `<link rel="stylesheet">` tag in the document head.
+///
+/// ```
+/// <Stylesheet href="/styles.css" />
+/// ```
+pub struct Stylesheet
+
+// --- Server ---
+
+/// HTTP server with routing and static file serving.
+///
+/// ```
+/// Server::new()
+///     .host("127.0.0.1")
+///     .port(3000)
+///     .workers(4)
+///     .public_dir("public")
+///     .page("/", home)
+///     .page("/about", about)
+///     .page_with_metadata("/blog/:slug", blog_post, blog_metadata)
+///     .api("/api/health", health_check)
+///     .not_found_page(not_found)
+///     .listen();
+/// ```
+///
+/// Builder methods:
+///   - `.host(h: &str) -> Self` — Set bind address (default: "127.0.0.1")
+///   - `.port(p: u16) -> Self` — Set port number (default: 3000)
+///   - `.workers(n: usize) -> Self` — Set number of worker threads
+///   - `.public_dir(path: &str) -> Self` — Set static file directory
+///   - `.page(pattern: &str, handler: fn(&Request) -> HtmlDocument) -> Self` — Add page route
+///   - `.page_with_metadata(pattern, handler, metadata_fn) -> Self` — Page with SEO metadata
+///   - `.api(pattern: &str, handler: fn(&Request) -> Response) -> Self` — Add API route
+///   - `.file_route(pattern: &str, file_route: FileRoute) -> Self` — Add file-based API route
+///   - `.file_page_route(pattern: &str, file_route: FileRoute) -> Self` — Add file-based page route
+///   - `.not_found(handler: fn(&Request) -> Response) -> Self` — Custom 404 handler
+///   - `.not_found_page(handler: fn(&Request) -> HtmlDocument) -> Self` — Custom 404 page
+///   - `.dynamic_page(pattern: &str, data: Arc<DynamicPageData>) -> Self` — Dynamic page route
+///   - `.not_found_dynamic_page(data: Arc<DynamicPageData>) -> Self` — Dynamic 404 page
+///   - `.listen() -> !` — Start the server (blocks forever)
+pub struct Server
+
+pub fn Server::new() -> Self
+pub fn Server::host(mut self, h: &str) -> Self
+pub fn Server::port(mut self, p: u16) -> Self
+pub fn Server::workers(mut self, n: usize) -> Self
+pub fn Server::public_dir(mut self, path: &str) -> Self
+pub fn Server::page(mut self, pattern: &str, handler: fn(&Request) -> HtmlDocument) -> Self
+pub fn Server::page_with_metadata(mut self, pattern: &str, handler: fn(&Request) -> HtmlDocument, metadata_fn: MetadataFn) -> Self
+pub fn Server::api(mut self, pattern: &str, handler: fn(&Request) -> Response) -> Self
+pub fn Server::file_route(mut self, pattern: &str, file_route: FileRoute) -> Self
+pub fn Server::file_page_route(mut self, pattern: &str, file_route: FileRoute) -> Self
+pub fn Server::not_found(mut self, handler: fn(&Request) -> Response) -> Self
+pub fn Server::not_found_page(mut self, handler: fn(&Request) -> HtmlDocument) -> Self
+pub fn Server::dynamic_page(mut self, pattern: &str, data: Arc<DynamicPageData>) -> Self
+pub fn Server::not_found_dynamic_page(mut self, data: Arc<DynamicPageData>) -> Self
+pub fn Server::listen(self) -> !
+
+/// File-based route handler supporting multiple HTTP methods.
+///
+/// ```
+/// FileRoute::new()
+///     .get(handle_get)
+///     .post(handle_post)
+///     .delete(handle_delete)
+///     .metadata(get_page_meta)
+/// ```
+///
+/// Builder methods:
+///   - `.get(handler: Handler) -> Self` — Handle GET requests
+///   - `.post(handler: Handler) -> Self` — Handle POST requests
+///   - `.put(handler: Handler) -> Self` — Handle PUT requests
+///   - `.patch(handler: Handler) -> Self` — Handle PATCH requests
+///   - `.delete(handler: Handler) -> Self` — Handle DELETE requests
+///   - `.head(handler: Handler) -> Self` — Handle HEAD requests
+///   - `.metadata(meta_fn: MetadataFn) -> Self` — Attach metadata function
+///   - `.resolve(method: &Method) -> Handler` — Get handler for a method
+///   - `.has_any() -> bool` — Check if any handlers are registered
+pub struct FileRoute {
+    pub get: Option<Handler>,
+    pub post: Option<Handler>,
+    pub put: Option<Handler>,
+    pub patch: Option<Handler>,
+    pub delete: Option<Handler>,
+    pub head: Option<Handler>,
+    pub metadata_fn: Option<MetadataFn>,
+}
+
+pub fn FileRoute::new() -> Self
+pub fn FileRoute::get(mut self, handler: Handler) -> Self
+pub fn FileRoute::post(mut self, handler: Handler) -> Self
+pub fn FileRoute::put(mut self, handler: Handler) -> Self
+pub fn FileRoute::patch(mut self, handler: Handler) -> Self
+pub fn FileRoute::delete(mut self, handler: Handler) -> Self
+pub fn FileRoute::head(mut self, handler: Handler) -> Self
+pub fn FileRoute::metadata(mut self, meta_fn: MetadataFn) -> Self
+pub fn FileRoute::resolve(&self, method: &Method) -> Handler
+pub fn FileRoute::has_any(&self) -> bool
+
+/// Type alias for route handler functions.
+pub type Handler = fn(&Request) -> Response
+
+/// Type alias for page handler functions.
+pub type PageHandler = fn(&Request) -> HtmlDocument

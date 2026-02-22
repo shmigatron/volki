@@ -1,0 +1,6 @@
+[volki]
+ecosystem = "rust"
+manager = "cargo"
+
+[web]
+entrypoint = "src/libs/db/web_editor"

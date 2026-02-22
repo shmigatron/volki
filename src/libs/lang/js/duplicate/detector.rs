@@ -1,11 +1,13 @@
-use std::collections::HashMap;
-use std::fmt;
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
+use crate::core::volkiwithstds::collections::HashMap;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fmt;
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::io;
+use crate::core::volkiwithstds::path::{Path, PathBuf};
 
 use crate::libs::lang::js::formatter::tokenizer::{TokenKind, tokenize};
 use crate::libs::lang::js::formatter::walker::{WalkConfig, walk_files};
+use crate::vvec;
 
 #[derive(Debug)]
 pub struct DuplicateResult {
@@ -28,7 +30,7 @@ pub struct CloneInstance {
 
 #[derive(Debug)]
 pub enum DuplicateError {
-    Io(io::Error),
+    Io(io::IoError),
     NoSourceFiles(String),
 }
 
@@ -41,8 +43,8 @@ impl fmt::Display for DuplicateError {
     }
 }
 
-impl From<io::Error> for DuplicateError {
-    fn from(e: io::Error) -> Self {
+impl From<io::IoError> for DuplicateError {
+    fn from(e: io::IoError) -> Self {
         DuplicateError::Io(e)
     }
 }
@@ -57,9 +59,9 @@ pub fn detect(root: &Path, min_tokens: usize) -> Result<DuplicateResult, Duplica
     let files = walk_files(root, &config).map_err(DuplicateError::Io)?;
 
     if files.is_empty() {
-        return Err(DuplicateError::NoSourceFiles(
-            "No JS/TS source files found".to_string(),
-        ));
+        return Err(DuplicateError::NoSourceFiles(crate::vstr!(
+            "No JS/TS source files found"
+        )));
     }
 
     let mut all_sequences: Vec<(PathBuf, Vec<NormalizedToken>)> = Vec::new();
@@ -105,11 +107,8 @@ pub fn detect(root: &Path, min_tokens: usize) -> Result<DuplicateResult, Duplica
             continue;
         }
         for start in 0..=tokens.len() - min_tokens {
-            let hash = compute_hash(&tokens[start..start + min_tokens]);
-            hash_index
-                .entry(hash)
-                .or_default()
-                .push((file_idx, start));
+            let hash = compute_hash(&tokens.as_slice()[start..start + min_tokens]);
+            hash_index.entry(hash).or_default().push((file_idx, start));
         }
     }
 
@@ -140,8 +139,8 @@ pub fn detect(root: &Path, min_tokens: usize) -> Result<DuplicateResult, Duplica
                 }
                 seen_pairs.insert(key, true);
 
-                let seq_i = &all_sequences[fi].1[si..si + min_tokens];
-                let seq_j = &all_sequences[fj].1[sj..sj + min_tokens];
+                let seq_i = &all_sequences[fi].1.as_slice()[si..si + min_tokens];
+                let seq_j = &all_sequences[fj].1.as_slice()[sj..sj + min_tokens];
                 if !sequences_match(seq_i, seq_j) {
                     continue;
                 }
@@ -166,7 +165,7 @@ pub fn detect(root: &Path, min_tokens: usize) -> Result<DuplicateResult, Duplica
                 };
 
                 clone_groups.push(CloneGroup {
-                    instances: vec![instance_i, instance_j],
+                    instances: vvec![instance_i, instance_j],
                     token_count: max_extend,
                 });
             }
@@ -307,13 +306,13 @@ mod tests {
 
     #[test]
     fn duplicate_error_display() {
-        let err = DuplicateError::NoSourceFiles("no files".to_string());
-        assert_eq!(format!("{err}"), "no files");
+        let err = DuplicateError::NoSourceFiles(crate::vstr!("no files"));
+        assert_eq!(crate::vformat!("{err}"), "no files");
     }
 
     #[test]
     fn hash_deterministic() {
-        let tokens = vec![
+        let tokens = vvec![
             NormalizedToken {
                 kind: TokenKind::Identifier,
                 line: 1,
@@ -330,11 +329,11 @@ mod tests {
 
     #[test]
     fn different_sequences_different_hash() {
-        let a = vec![NormalizedToken {
+        let a = vvec![NormalizedToken {
             kind: TokenKind::Identifier,
             line: 1,
         }];
-        let b = vec![NormalizedToken {
+        let b = vvec![NormalizedToken {
             kind: TokenKind::OpenParen,
             line: 1,
         }];
@@ -353,8 +352,10 @@ mod tests {
 
     #[test]
     fn detect_no_source_files() {
-        let dir =
-            std::env::temp_dir().join(format!("volki_dup_empty_{}", std::process::id()));
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
+            "volki_dup_empty_{}",
+            crate::core::volkiwithstds::process::id()
+        ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
 
@@ -366,8 +367,10 @@ mod tests {
 
     #[test]
     fn detect_duplicate_blocks() {
-        let dir =
-            std::env::temp_dir().join(format!("volki_dup_blocks_{}", std::process::id()));
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
+            "volki_dup_blocks_{}",
+            crate::core::volkiwithstds::process::id()
+        ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
 
@@ -385,8 +388,10 @@ mod tests {
 
     #[test]
     fn no_duplicates_different_code() {
-        let dir =
-            std::env::temp_dir().join(format!("volki_dup_diff_{}", std::process::id()));
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
+            "volki_dup_diff_{}",
+            crate::core::volkiwithstds::process::id()
+        ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
 

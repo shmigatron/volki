@@ -1,5 +1,7 @@
-use std::io::Write;
-use std::time::Instant;
+use crate::core::volkiwithstds::collections::String;
+use crate::core::volkiwithstds::io::traits::Write;
+use crate::core::volkiwithstds::time::Instant;
+use crate::{veprint, veprintln};
 
 use super::style;
 
@@ -17,7 +19,7 @@ impl ProgressBar {
         ProgressBar {
             total,
             current: 0,
-            label: label.to_string(),
+            label: String::from(label),
             bar_width: 20,
             last_drawn_pct: u64::MAX,
             last_drawn_at: Instant::now(),
@@ -47,19 +49,16 @@ impl ProgressBar {
         };
         let empty = self.bar_width - filled;
 
-        let bar_filled = "\u{2588}".repeat(filled);
-        let bar_empty = "\u{2591}".repeat(empty);
+        let bar_filled = String::from("\u{2588}").repeat(filled);
+        let bar_empty = String::from("\u{2591}").repeat(empty);
 
         let bar_str = if style::use_color() {
-            format!(
-                "{}{}{}{bar_empty}",
-                style::PURPLE, bar_filled, style::RESET
-            )
+            crate::vformat!("{}{}{}{bar_empty}", style::PURPLE, bar_filled, style::RESET)
         } else {
-            format!("{bar_filled}{bar_empty}")
+            crate::vformat!("{bar_filled}{bar_empty}")
         };
 
-        eprintln!(
+        veprintln!(
             "\r  {}  {}  {}/{}  {pct}% {}",
             self.label,
             bar_str,
@@ -82,19 +81,16 @@ impl ProgressBar {
         };
         let empty = self.bar_width - filled;
 
-        let bar_filled = "\u{2588}".repeat(filled);
-        let bar_empty = "\u{2591}".repeat(empty);
+        let bar_filled = String::from("\u{2588}").repeat(filled);
+        let bar_empty = String::from("\u{2591}").repeat(empty);
 
         let bar_str = if style::use_color() {
-            format!(
-                "{}{}{}{bar_empty}",
-                style::RED, bar_filled, style::RESET
-            )
+            crate::vformat!("{}{}{}{bar_empty}", style::RED, bar_filled, style::RESET)
         } else {
-            format!("{bar_filled}{bar_empty}")
+            crate::vformat!("{bar_filled}{bar_empty}")
         };
 
-        eprintln!(
+        veprintln!(
             "\r  {}  {}  {}/{}  {pct}% {}",
             self.label,
             bar_str,
@@ -128,23 +124,23 @@ impl ProgressBar {
         };
         let empty = self.bar_width - filled;
 
-        let bar_filled = "\u{2588}".repeat(filled);
-        let bar_empty = "\u{2591}".repeat(empty);
+        let bar_filled = String::from("\u{2588}").repeat(filled);
+        let bar_empty = String::from("\u{2591}").repeat(empty);
 
         let bar_str = if style::use_color() {
-            format!(
-                "{}{}{}{bar_empty}",
-                style::PURPLE, bar_filled, style::RESET
-            )
+            crate::vformat!("{}{}{}{bar_empty}", style::PURPLE, bar_filled, style::RESET)
         } else {
-            format!("{bar_filled}{bar_empty}")
+            crate::vformat!("{bar_filled}{bar_empty}")
         };
 
-        eprint!(
+        veprint!(
             "\r  {}  {}  {}/{}  {pct}%",
-            self.label, bar_str, self.current, self.total,
+            self.label,
+            bar_str,
+            self.current,
+            self.total,
         );
-        let _ = std::io::stderr().flush();
+        let _ = crate::core::volkiwithstds::io::stderr().flush();
     }
 }
 

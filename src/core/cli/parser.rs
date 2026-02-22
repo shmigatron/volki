@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use crate::core::volkiwithstds::collections::{HashMap, String, Vec};
 
 use super::command::OptionSpec;
 use super::error::CliError;
@@ -11,7 +11,11 @@ pub struct RawArgs {
 
 impl RawArgs {
     pub fn from_env() -> Self {
-        let args: Vec<String> = std::env::args().skip(1).collect();
+        let args: Vec<String> = crate::core::volkiwithstds::env::args()
+            .into_iter()
+            .skip(1)
+            .map(|s| String::from(s.as_str()))
+            .collect();
         Self::from_vec(args)
     }
 
@@ -20,17 +24,14 @@ impl RawArgs {
         let mut tokens = Vec::new();
 
         for arg in &args {
-            if subcommand.is_none() && !arg.starts_with('-') {
+            if subcommand.is_none() && !arg.starts_with("-") {
                 subcommand = Some(arg.clone());
             } else {
                 tokens.push(arg.clone());
             }
         }
 
-        RawArgs {
-            subcommand,
-            tokens,
-        }
+        RawArgs { subcommand, tokens }
     }
 }
 
@@ -75,16 +76,16 @@ impl ParsedArgs {
                     break;
                 }
 
-                if value_opts.contains_key(name) {
+                if value_opts.contains_key(&name) {
                     i += 1;
                     if i >= tokens.len() {
-                        return Err(CliError::MissingValue(name.to_string()));
+                        return Err(CliError::MissingValue(String::from(name)));
                     }
-                    options.insert(name.to_string(), tokens[i].clone());
-                } else if flag_opts.contains_key(name) {
-                    flags.insert(name.to_string(), true);
+                    options.insert(String::from(name), tokens[i].clone());
+                } else if flag_opts.contains_key(&name) {
+                    flags.insert(String::from(name), true);
                 } else {
-                    return Err(CliError::UnknownFlag(name.to_string()));
+                    return Err(CliError::UnknownFlag(String::from(name)));
                 }
             } else {
                 positional.push(token.clone());
@@ -94,9 +95,9 @@ impl ParsedArgs {
         }
 
         for spec in specs {
-            if spec.takes_value && !options.contains_key(spec.name) {
+            if spec.takes_value && !options.contains_key(&String::from(spec.name)) {
                 if let Some(default) = spec.default_value {
-                    options.insert(spec.name.to_string(), default.to_string());
+                    options.insert(String::from(spec.name), String::from(default));
                 }
             }
         }
@@ -109,11 +110,14 @@ impl ParsedArgs {
     }
 
     pub fn get_option(&self, name: &str) -> Option<&str> {
-        self.options.get(name).map(|s| s.as_str())
+        self.options.get(&String::from(name)).map(|s| s.as_str())
     }
 
     pub fn get_flag(&self, name: &str) -> bool {
-        self.flags.get(name).copied().unwrap_or(false)
+        self.flags
+            .get(&String::from(name))
+            .copied()
+            .unwrap_or(false)
     }
 
     #[allow(dead_code)]
@@ -130,9 +134,14 @@ impl ParsedArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vvec;
 
-    fn s(v: &str) -> String { v.to_string() }
-    fn sv(v: &[&str]) -> Vec<String> { v.iter().map(|x| s(x)).collect() }
+    fn s(v: &str) -> String {
+        String::from(v)
+    }
+    fn sv(v: &[&str]) -> Vec<String> {
+        v.iter().map(|x| s(x)).collect()
+    }
 
     fn spec_value(name: &'static str) -> OptionSpec {
         OptionSpec {
@@ -171,7 +180,7 @@ mod tests {
 
     #[test]
     fn raw_args_empty() {
-        let raw = RawArgs::from_vec(vec![]);
+        let raw = RawArgs::from_vec(vvec![]);
         assert!(raw.subcommand.is_none());
         assert!(raw.tokens.is_empty());
     }
@@ -201,7 +210,10 @@ mod tests {
 
     #[test]
     fn resolve_value_option() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["--path", "/tmp"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["--path", "/tmp"]),
+        };
         let specs = [spec_value("path")];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
         assert_eq!(parsed.get_option("path"), Some("/tmp"));
@@ -209,7 +221,10 @@ mod tests {
 
     #[test]
     fn resolve_flag() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["--group"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["--group"]),
+        };
         let specs = [spec_flag("group")];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
         assert!(parsed.get_flag("group"));
@@ -217,7 +232,10 @@ mod tests {
 
     #[test]
     fn resolve_absent_flag() {
-        let raw = RawArgs { subcommand: None, tokens: vec![] };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: vvec![],
+        };
         let specs = [spec_flag("group")];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
         assert!(!parsed.get_flag("group"));
@@ -225,7 +243,10 @@ mod tests {
 
     #[test]
     fn resolve_default_value() {
-        let raw = RawArgs { subcommand: None, tokens: vec![] };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: vvec![],
+        };
         let specs = [spec_value_default("path", ".")];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
         assert_eq!(parsed.get_option("path"), Some("."));
@@ -233,7 +254,10 @@ mod tests {
 
     #[test]
     fn resolve_override_default() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["--path", "/home"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["--path", "/home"]),
+        };
         let specs = [spec_value_default("path", ".")];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
         assert_eq!(parsed.get_option("path"), Some("/home"));
@@ -241,7 +265,10 @@ mod tests {
 
     #[test]
     fn resolve_unknown_flag_error() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["--unknown"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["--unknown"]),
+        };
         let specs: [OptionSpec; 0] = [];
         let result = ParsedArgs::resolve(&raw, &specs);
         assert!(matches!(result, Err(CliError::UnknownFlag(_))));
@@ -249,7 +276,10 @@ mod tests {
 
     #[test]
     fn resolve_missing_value_error() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["--path"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["--path"]),
+        };
         let specs = [spec_value("path")];
         let result = ParsedArgs::resolve(&raw, &specs);
         assert!(matches!(result, Err(CliError::MissingValue(_))));
@@ -257,28 +287,37 @@ mod tests {
 
     #[test]
     fn resolve_bare_double_dash_positional() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["--", "foo", "bar"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["--", "foo", "bar"]),
+        };
         let specs: [OptionSpec; 0] = [];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
-        assert_eq!(parsed.positional(), &sv(&["foo", "bar"]));
+        assert_eq!(parsed.positional(), sv(&["foo", "bar"]).as_slice());
     }
 
     #[test]
     fn resolve_positional_args() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["arg1", "arg2"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["arg1", "arg2"]),
+        };
         let specs: [OptionSpec; 0] = [];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
-        assert_eq!(parsed.positional(), &sv(&["arg1", "arg2"]));
+        assert_eq!(parsed.positional(), sv(&["arg1", "arg2"]).as_slice());
     }
 
     #[test]
     fn resolve_mixed_flags_and_positional() {
-        let raw = RawArgs { subcommand: None, tokens: sv(&["--group", "pos1", "--path", "/tmp"]) };
+        let raw = RawArgs {
+            subcommand: None,
+            tokens: sv(&["--group", "pos1", "--path", "/tmp"]),
+        };
         let specs = [spec_flag("group"), spec_value("path")];
         let parsed = ParsedArgs::resolve(&raw, &specs).unwrap();
         assert!(parsed.get_flag("group"));
         assert_eq!(parsed.get_option("path"), Some("/tmp"));
-        assert_eq!(parsed.positional(), &sv(&["pos1"]));
+        assert_eq!(parsed.positional(), sv(&["pos1"]).as_slice());
     }
 
     // --- has_help_flag ---
@@ -300,6 +339,8 @@ mod tests {
 
     #[test]
     fn has_help_among_other_args() {
-        assert!(ParsedArgs::has_help_flag(&sv(&["--path", "/tmp", "--help"])));
+        assert!(ParsedArgs::has_help_flag(&sv(&[
+            "--path", "/tmp", "--help"
+        ])));
     }
 }

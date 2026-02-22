@@ -3,6 +3,8 @@ use crate::core::cli::error::CliError;
 use crate::core::cli::output;
 use crate::core::cli::parser::ParsedArgs;
 use crate::core::cli::style;
+use crate::core::volkiwithstds::collections::Vec;
+use crate::veprintln;
 
 pub struct DbHubCommand;
 
@@ -24,26 +26,47 @@ impl Command for DbHubCommand {
     }
 
     fn execute(&self, _args: &ParsedArgs) -> Result<(), CliError> {
-        eprintln!("  {}", style::dim("available subcommands:"));
-        eprintln!();
-        eprintln!(
+        // Show configured databases if volki.toml is present
+        let cwd = crate::core::volkiwithstds::env::current_dir().ok();
+        if let Some(ref dir) = cwd {
+            if let Ok(config) = crate::core::config::VolkiConfig::load(dir) {
+                let names = super::discover_db_names(config.table());
+                if names.is_empty() {
+                    if config.table().get("db", "dialect").is_some() {
+                        veprintln!("  {}  {}", style::dim("config:"), "(single)");
+                    }
+                } else {
+                    veprintln!("  {}  {}", style::dim("config:"), names.join(", "),);
+                }
+                veprintln!();
+            }
+        }
+
+        veprintln!("  {}", style::dim("available subcommands:"));
+        veprintln!();
+        veprintln!(
             "    {}    {}",
-            style::cyan(&format!("{:<12}", "db:db")),
-            style::dim("list databases"),
+            style::cyan(&crate::vformat!("{:<12}", "db:db")),
+            style::dim("list, create, drop databases"),
         );
-        eprintln!(
+        veprintln!(
             "    {}    {}",
-            style::cyan(&format!("{:<12}", "db:user")),
-            style::dim("manage database users/roles"),
+            style::cyan(&crate::vformat!("{:<12}", "db:user")),
+            style::dim("list, add, drop database roles"),
         );
-        eprintln!(
+        veprintln!(
             "    {}    {}",
-            style::cyan(&format!("{:<12}", "db:table")),
-            style::dim("list database tables"),
+            style::cyan(&crate::vformat!("{:<12}", "db:table")),
+            style::dim("list, describe, drop, truncate tables"),
         );
-        eprintln!();
+        veprintln!(
+            "    {}    {}",
+            style::cyan(&crate::vformat!("{:<12}", "db:web")),
+            style::dim("launch web-based table editor"),
+        );
+        veprintln!();
         output::print_hint("run volki <subcommand> --help for details");
-        eprintln!();
+        veprintln!();
         Ok(())
     }
 }

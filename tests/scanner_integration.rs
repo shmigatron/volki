@@ -14,11 +14,12 @@ fn cleanup(dir: &Path) {
 
 mod node {
     use super::*;
+    use volki::core::volkiwithstds::collections::String as VString;
     use volki::libs::lang::shared::license::types::{RiskLevel, ScanConfig};
 
     fn node_config(path: &str) -> ScanConfig {
         ScanConfig {
-            path: path.to_string(),
+            path: VString::from(path),
             include_dev: false,
             filter: None,
             exclude: None,
@@ -80,11 +81,12 @@ mod node {
 
 mod php {
     use super::*;
+    use volki::core::volkiwithstds::collections::String as VString;
     use volki::libs::lang::shared::license::types::{RiskLevel, ScanConfig};
 
     fn php_config(path: &str) -> ScanConfig {
         ScanConfig {
-            path: path.to_string(),
+            path: VString::from(path),
             include_dev: false,
             filter: None,
             exclude: None,

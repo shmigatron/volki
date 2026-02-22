@@ -1,10 +1,13 @@
-use std::path::Path;
+use crate::core::volkiwithstds::path::Path;
+
+use crate::{veprintln, vvec};
 
 use crate::core::cli::command::{Command, OptionSpec};
 use crate::core::cli::error::CliError;
 use crate::core::cli::output;
 use crate::core::cli::parser::ParsedArgs;
 use crate::core::cli::style;
+use crate::core::volkiwithstds::collections::{String, Vec};
 use crate::libs::lang::js::outdated::{checker, updater};
 
 pub struct FixCommand;
@@ -26,7 +29,7 @@ impl Command for FixCommand {
     }
 
     fn options(&self) -> Vec<OptionSpec> {
-        vec![
+        vvec![
             OptionSpec {
                 name: "path",
                 description: "Project root directory",
@@ -68,28 +71,28 @@ impl Command for FixCommand {
         let dev = args.get_flag("dev");
         let root = Path::new(path);
 
-        let outdated =
-            checker::check(root, dev).map_err(|e| CliError::InvalidUsage(e.to_string()))?;
+        let outdated = checker::check(root, dev)
+            .map_err(|e| CliError::InvalidUsage(crate::vformat!("{e}")))?;
 
         if outdated.packages.is_empty() {
             output::print_item(
                 &style::green(style::CHECK),
                 &style::green("all packages are up to date"),
             );
-            eprintln!();
+            veprintln!();
             return Ok(());
         }
 
         super::outdated::print_outdated_table(&outdated);
-        eprintln!();
+        veprintln!();
 
         let packages_to_update: Vec<String> = match args.get_option("packages") {
             Some(list) => {
                 let requested: Vec<String> =
-                    list.split(',').map(|s| s.trim().to_string()).collect();
+                    list.split(",").map(|s| String::from(s.trim())).collect();
                 for pkg in &requested {
                     if !outdated.packages.iter().any(|p| p.name == *pkg) {
-                        return Err(CliError::InvalidUsage(format!(
+                        return Err(CliError::InvalidUsage(crate::vformat!(
                             "Package '{pkg}' is not in the outdated list"
                         )));
                     }
@@ -100,13 +103,13 @@ impl Command for FixCommand {
         };
 
         let manager = checker::detect_package_manager(root)
-            .map_err(|e| CliError::InvalidUsage(e.to_string()))?;
+            .map_err(|e| CliError::InvalidUsage(crate::vformat!("{e}")))?;
 
-        output::print_section(&format!(
+        output::print_section(&crate::vformat!(
             "updating {} package(s)...",
-            style::bold(&packages_to_update.len().to_string()),
+            style::bold(&crate::vformat!("{}", packages_to_update.len())),
         ));
-        eprintln!();
+        veprintln!();
 
         let results = updater::update_packages(root, &manager, &packages_to_update, latest);
 
@@ -121,7 +124,7 @@ impl Command for FixCommand {
                     i + 1,
                     total,
                     &style::green(style::CHECK),
-                    &format!("updated {}", style::bold(&result.package)),
+                    &crate::vformat!("updated {}", style::bold(&result.package)),
                 );
             } else {
                 fail_count += 1;
@@ -129,26 +132,32 @@ impl Command for FixCommand {
                     i + 1,
                     total,
                     &style::red(style::CROSS),
-                    &format!("failed {}: {}", style::bold(&result.package), result.message),
+                    &crate::vformat!(
+                        "failed {}: {}",
+                        style::bold(&result.package),
+                        result.message
+                    ),
                 );
             }
         }
 
-        eprintln!();
-        output::print_summary_box(&[
-            &format!(
-                "{} updated, {} failed",
-                style::green(&success_count.to_string()),
-                if fail_count > 0 { style::red(&fail_count.to_string()) } else { "0".to_string() },
-            ),
-        ]);
+        veprintln!();
+        output::print_summary_box(&[&crate::vformat!(
+            "{} updated, {} failed",
+            style::green(&crate::vformat!("{}", success_count)),
+            if fail_count > 0 {
+                style::red(&crate::vformat!("{}", fail_count))
+            } else {
+                crate::vformat!("0")
+            },
+        )]);
 
-        eprintln!();
+        veprintln!();
         output::print_hint("run volki outdated to verify");
-        eprintln!();
+        veprintln!();
 
         if fail_count > 0 {
-            return Err(CliError::InvalidUsage(format!(
+            return Err(CliError::InvalidUsage(crate::vformat!(
                 "{fail_count} package(s) failed to update"
             )));
         }

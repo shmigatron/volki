@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Import {
@@ -39,26 +40,27 @@ pub struct FileInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vvec;
 
     #[test]
     fn import_debug() {
         let imp = Import {
-            source: "react".to_string(),
-            symbols: ImportedSymbols::Default("React".to_string()),
+            source: crate::vstr!("react"),
+            symbols: ImportedSymbols::Default(crate::vstr!("React")),
             line: 1,
         };
-        let dbg = format!("{imp:?}");
+        let dbg = crate::vformat!("{imp:?}");
         assert!(dbg.contains("react"));
     }
 
     #[test]
     fn export_debug() {
         let exp = Export {
-            name: "foo".to_string(),
+            name: crate::vstr!("foo"),
             kind: ExportKind::Named,
             line: 5,
         };
-        let dbg = format!("{exp:?}");
+        let dbg = crate::vformat!("{exp:?}");
         assert!(dbg.contains("foo"));
     }
 
@@ -66,10 +68,10 @@ mod tests {
     fn file_info_debug() {
         let info = FileInfo {
             path: PathBuf::from("src/index.ts"),
-            imports: vec![],
-            exports: vec![],
+            imports: vvec![],
+            exports: vvec![],
         };
-        let dbg = format!("{info:?}");
+        let dbg = crate::vformat!("{info:?}");
         assert!(dbg.contains("index.ts"));
     }
 }

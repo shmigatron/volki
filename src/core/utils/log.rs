@@ -1,4 +1,6 @@
-use std::sync::atomic::{AtomicU8, Ordering};
+use crate::veprintln;
+
+use core::sync::atomic::{AtomicU8, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
@@ -48,7 +50,7 @@ pub fn enabled(msg_level: LogLevel) -> bool {
 
 pub fn log(msg_level: LogLevel, module: &str, msg: &str) {
     if enabled(msg_level) {
-        eprintln!("[{}] {}: {}", msg_level.label(), module, msg);
+        veprintln!("[{}] {}: {}", msg_level.label(), module, msg);
     }
 }
 
@@ -58,7 +60,7 @@ macro_rules! log_debug {
         $crate::core::utils::log::log(
             $crate::core::utils::log::LogLevel::Debug,
             module_path!(),
-            &format!($($arg)*),
+            &$crate::vformat!($($arg)*),
         )
     };
 }
@@ -69,7 +71,7 @@ macro_rules! log_info {
         $crate::core::utils::log::log(
             $crate::core::utils::log::LogLevel::Info,
             module_path!(),
-            &format!($($arg)*),
+            &$crate::vformat!($($arg)*),
         )
     };
 }
@@ -80,7 +82,7 @@ macro_rules! log_warn {
         $crate::core::utils::log::log(
             $crate::core::utils::log::LogLevel::Warn,
             module_path!(),
-            &format!($($arg)*),
+            &$crate::vformat!($($arg)*),
         )
     };
 }
@@ -91,7 +93,7 @@ macro_rules! log_error {
         $crate::core::utils::log::log(
             $crate::core::utils::log::LogLevel::Error,
             module_path!(),
-            &format!($($arg)*),
+            &$crate::vformat!($($arg)*),
         )
     };
 }

@@ -1,75 +1,68 @@
+use crate::core::volkiwithstds::collections::String;
+use crate::veprintln;
+
 use super::command::Command;
 use super::style;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn print_top_level(commands: &[&dyn Command]) {
-    eprintln!();
-    eprintln!(
+    veprintln!();
+    veprintln!(
         "  {} {} {}",
         style::WOLF,
         style::bold("volki"),
-        style::dim(&format!("v{VERSION}"))
+        style::dim(&crate::vformat!("v{VERSION}"))
     );
-    eprintln!(
-        "  {}",
-        style::dim("code quality companion")
-    );
-    eprintln!();
-    eprintln!(
-        "  {}  volki <command> [options]",
-        style::bold("usage:")
-    );
-    eprintln!();
-    eprintln!("  {}", style::bold("commands:"));
+    veprintln!("  {}", style::dim("code quality companion"));
+    veprintln!();
+    veprintln!("  {}  volki <command> [options]", style::bold("usage:"));
+    veprintln!();
+    veprintln!("  {}", style::bold("commands:"));
 
     let max_width = commands.iter().map(|c| c.name().len()).max().unwrap_or(0);
     for cmd in commands {
-        eprintln!(
+        veprintln!(
             "    {}    {}",
-            style::cyan(&format!("{:width$}", cmd.name(), width = max_width)),
+            style::cyan(&crate::vformat!("{:width$}", cmd.name(), width = max_width)),
             style::dim(cmd.description()),
         );
     }
 
-    eprintln!();
-    eprintln!("  {}", style::bold("global options:"));
-    eprintln!(
+    veprintln!();
+    veprintln!("  {}", style::bold("global options:"));
+    veprintln!(
         "    {}    {}",
-        style::cyan(&format!("{:<12}", "--help")),
+        style::cyan(&crate::vformat!("{:<12}", "--help")),
         style::dim("print help information"),
     );
-    eprintln!(
+    veprintln!(
         "    {}    {}",
-        style::cyan(&format!("{:<12}", "--version")),
+        style::cyan(&crate::vformat!("{:<12}", "--version")),
         style::dim("print version information"),
     );
-    eprintln!(
+    veprintln!(
         "    {}    {}",
-        style::cyan(&format!("{:<12}", "--no-color")),
+        style::cyan(&crate::vformat!("{:<12}", "--no-color")),
         style::dim("disable colored output"),
     );
 
-    eprintln!();
-    eprintln!(
+    veprintln!();
+    veprintln!(
         "  {}  https://volki.dev {}",
         style::bold("docs:"),
         style::PAW,
     );
-    eprintln!();
+    veprintln!();
 }
 
 pub fn print_command_help(cmd: &dyn Command) {
-    eprintln!();
-    eprintln!(
-        "  {} volki {}",
-        style::WOLF,
-        style::bold(cmd.name()),
-    );
-    eprintln!();
-    eprintln!("  {}", cmd.long_description());
-    eprintln!();
-    eprintln!(
+    veprintln!();
+    veprintln!("  {} volki {}", style::WOLF, style::bold(cmd.name()),);
+    veprintln!();
+    veprintln!("  {}", cmd.long_description());
+    veprintln!();
+    veprintln!(
         "  {}  volki {}{}",
         style::bold("usage:"),
         cmd.name(),
@@ -78,8 +71,8 @@ pub fn print_command_help(cmd: &dyn Command) {
 
     let options = cmd.options();
     if !options.is_empty() {
-        eprintln!();
-        eprintln!("  {}", style::bold("options:"));
+        veprintln!();
+        veprintln!("  {}", style::bold("options:"));
 
         let max_width = options
             .iter()
@@ -95,42 +88,45 @@ pub fn print_command_help(cmd: &dyn Command) {
 
         for opt in &options {
             let flag_str = if opt.takes_value {
-                format!("--{} <{}>", opt.name, opt.name.to_uppercase())
+                crate::vformat!("--{} <{}>", opt.name, String::from(opt.name).to_uppercase())
             } else {
-                format!("--{}", opt.name)
+                crate::vformat!("--{}", opt.name)
             };
 
-            let mut desc = opt.description.to_string();
+            let mut desc = String::from(opt.description);
             if let Some(def) = opt.default_value {
-                desc.push_str(&format!(" {}", style::dim(&format!("[default: {def}]"))));
+                desc.push_str(&crate::vformat!(
+                    " {}",
+                    style::dim(&crate::vformat!("[default: {def}]"))
+                ));
             }
             if opt.required {
-                desc.push_str(&format!(" {}", style::yellow("(required)")));
+                desc.push_str(&crate::vformat!(" {}", style::yellow("(required)")));
             }
 
-            eprintln!(
+            veprintln!(
                 "    {}    {}",
-                style::cyan(&format!("{:<width$}", flag_str, width = max_width)),
+                style::cyan(&crate::vformat!("{:<width$}", flag_str, width = max_width)),
                 desc,
             );
         }
     }
 
-    eprintln!();
-    eprintln!("  {}", style::bold("global options:"));
-    eprintln!(
+    veprintln!();
+    veprintln!("  {}", style::bold("global options:"));
+    veprintln!(
         "    {}    {}",
         style::cyan("--help"),
         style::dim("print help information"),
     );
 
-    eprintln!();
-    eprintln!(
+    veprintln!();
+    veprintln!(
         "  {}  https://volki.dev {}",
         style::bold("docs:"),
         style::PAW,
     );
-    eprintln!();
+    veprintln!();
 }
 
 fn format_usage_options(cmd: &dyn Command) -> String {
@@ -143,12 +139,20 @@ fn format_usage_options(cmd: &dyn Command) -> String {
     for opt in &options {
         if opt.takes_value {
             if opt.required {
-                parts.push_str(&format!(" --{} <{}>", opt.name, opt.name.to_uppercase()));
+                parts.push_str(&crate::vformat!(
+                    " --{} <{}>",
+                    opt.name,
+                    String::from(opt.name).to_uppercase()
+                ));
             } else {
-                parts.push_str(&format!(" [--{} <{}>]", opt.name, opt.name.to_uppercase()));
+                parts.push_str(&crate::vformat!(
+                    " [--{} <{}>]",
+                    opt.name,
+                    String::from(opt.name).to_uppercase()
+                ));
             }
         } else {
-            parts.push_str(&format!(" [--{}]", opt.name));
+            parts.push_str(&crate::vformat!(" [--{}]", opt.name));
         }
     }
     parts

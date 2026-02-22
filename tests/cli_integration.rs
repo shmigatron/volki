@@ -11,7 +11,9 @@ fn no_args_shows_help() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{stdout}{stderr}");
     assert!(
-        combined.to_lowercase().contains("usage") || combined.to_lowercase().contains("help") || combined.contains("volki"),
+        combined.to_lowercase().contains("usage")
+            || combined.to_lowercase().contains("help")
+            || combined.contains("volki"),
         "Expected help text, got: {combined}"
     );
     assert!(output.status.success());
@@ -23,7 +25,11 @@ fn help_flag() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{stdout}{stderr}");
-    assert!(combined.to_lowercase().contains("usage") || combined.contains("volki") || combined.to_lowercase().contains("help"));
+    assert!(
+        combined.to_lowercase().contains("usage")
+            || combined.contains("volki")
+            || combined.to_lowercase().contains("help")
+    );
 }
 
 #[test]
@@ -40,7 +46,10 @@ fn version_flag() {
 fn unknown_command_error() {
     let output = volki().arg("nonexistent").output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(!output.status.success(), "Expected failure for unknown command");
+    assert!(
+        !output.status.success(),
+        "Expected failure for unknown command"
+    );
     assert!(stderr.to_lowercase().contains("unknown") || stderr.to_lowercase().contains("error"));
 }
 
@@ -50,7 +59,9 @@ fn license_help() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{stdout}{stderr}");
-    assert!(combined.to_lowercase().contains("license") || combined.to_lowercase().contains("scan"));
+    assert!(
+        combined.to_lowercase().contains("license") || combined.to_lowercase().contains("scan")
+    );
 }
 
 #[test]
@@ -68,12 +79,18 @@ fn init_creates_config() {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
 
-    let output = volki().args(["init", dir.to_str().unwrap()]).output().unwrap();
+    let output = volki()
+        .args(["init", dir.to_str().unwrap()])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{stdout}{stderr}");
     assert!(output.status.success(), "init failed: {stderr}");
-    assert!(combined.to_lowercase().contains("created"), "Expected 'created', got: {combined}");
+    assert!(
+        combined.to_lowercase().contains("created"),
+        "Expected 'created', got: {combined}"
+    );
     assert!(dir.join("volki.toml").is_file());
 
     let _ = std::fs::remove_dir_all(&dir);
@@ -86,10 +103,16 @@ fn init_fails_if_config_exists() {
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("volki.toml"), "").unwrap();
 
-    let output = volki().args(["init", dir.to_str().unwrap()]).output().unwrap();
+    let output = volki()
+        .args(["init", dir.to_str().unwrap()])
+        .output()
+        .unwrap();
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("already exists"), "Expected 'already exists', got: {stderr}");
+    assert!(
+        stderr.contains("already exists"),
+        "Expected 'already exists', got: {stderr}"
+    );
 
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -137,11 +160,7 @@ fn config_required_for_commands() {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
 
-    let output = volki()
-        .current_dir(&dir)
-        .arg("status")
-        .output()
-        .unwrap();
+    let output = volki().current_dir(&dir).arg("status").output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(!output.status.success());
     assert!(

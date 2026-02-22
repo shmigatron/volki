@@ -1,9 +1,10 @@
-use std::fmt;
-use std::io;
+use crate::core::volkiwithstds::collections::String;
+use crate::core::volkiwithstds::fmt;
+use crate::core::volkiwithstds::io;
 
 #[derive(Debug)]
 pub enum PgError {
-    Io(io::Error),
+    Io(io::IoError),
     Auth(String),
     Protocol(String),
     Server {
@@ -28,17 +29,8 @@ impl fmt::Display for PgError {
     }
 }
 
-impl std::error::Error for PgError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            PgError::Io(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-impl From<io::Error> for PgError {
-    fn from(e: io::Error) -> Self {
+impl From<io::IoError> for PgError {
+    fn from(e: io::IoError) -> Self {
         PgError::Io(e)
     }
 }
@@ -49,21 +41,31 @@ mod tests {
 
     #[test]
     fn display_io_error() {
-        let err = PgError::Io(io::Error::new(io::ErrorKind::ConnectionRefused, "refused"));
-        assert!(err.to_string().contains("I/O error"));
-        assert!(err.to_string().contains("refused"));
+        let err = PgError::Io(io::IoError::new(
+            io::IoErrorKind::ConnectionRefused,
+            "refused",
+        ));
+        let msg = crate::vformat!("{err}");
+        assert!(msg.contains("I/O error"));
+        assert!(msg.contains("refused"));
     }
 
     #[test]
     fn display_auth_error() {
         let err = PgError::Auth("bad password".into());
-        assert_eq!(err.to_string(), "authentication error: bad password");
+        assert_eq!(
+            crate::vformat!("{err}").as_str(),
+            "authentication error: bad password"
+        );
     }
 
     #[test]
     fn display_protocol_error() {
         let err = PgError::Protocol("unexpected tag".into());
-        assert_eq!(err.to_string(), "protocol error: unexpected tag");
+        assert_eq!(
+            crate::vformat!("{err}").as_str(),
+            "protocol error: unexpected tag"
+        );
     }
 
     #[test]
@@ -74,25 +76,15 @@ mod tests {
             message: "relation does not exist".into(),
         };
         assert_eq!(
-            err.to_string(),
+            crate::vformat!("{err}").as_str(),
             "server error (ERROR 42P01): relation does not exist"
         );
     }
 
     #[test]
     fn from_io_error() {
-        let io_err = io::Error::new(io::ErrorKind::BrokenPipe, "pipe");
+        let io_err = io::IoError::new(io::IoErrorKind::BrokenPipe, "pipe");
         let pg_err: PgError = io_err.into();
         assert!(matches!(pg_err, PgError::Io(_)));
-    }
-
-    #[test]
-    fn error_source() {
-        let io_err = io::Error::new(io::ErrorKind::Other, "test");
-        let pg_err = PgError::Io(io_err);
-        assert!(std::error::Error::source(&pg_err).is_some());
-
-        let auth_err = PgError::Auth("x".into());
-        assert!(std::error::Error::source(&auth_err).is_none());
     }
 }

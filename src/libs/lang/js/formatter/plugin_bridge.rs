@@ -1,8 +1,10 @@
-use crate::core::plugins::protocol::JsonOut;
-use crate::libs::lang::shared::license::parsers::json::JsonValue;
-
 use super::config::FormatConfig;
 use super::tokenizer::{Token, TokenKind};
+use crate::core::plugins::protocol::JsonOut;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::Vec;
+use crate::core::volkiwithstds::collections::json::JsonValue;
+use crate::vvec;
 
 pub fn token_kind_str(kind: &TokenKind) -> &'static str {
     match kind {
@@ -76,7 +78,7 @@ pub fn tokens_to_json(tokens: &[Token]) -> JsonOut {
         tokens
             .iter()
             .map(|t| {
-                JsonOut::Object(vec![
+                JsonOut::Object(vvec![
                     ("kind".into(), JsonOut::Str(token_kind_str(&t.kind).into())),
                     ("text".into(), JsonOut::Str(t.text.clone())),
                     ("line".into(), JsonOut::Int(t.line as i64)),
@@ -88,13 +90,19 @@ pub fn tokens_to_json(tokens: &[Token]) -> JsonOut {
 }
 
 pub fn config_to_json(config: &FormatConfig) -> JsonOut {
-    JsonOut::Object(vec![
-        ("print_width".into(), JsonOut::Int(config.print_width as i64)),
+    JsonOut::Object(vvec![
+        (
+            "print_width".into(),
+            JsonOut::Int(config.print_width as i64)
+        ),
         ("tab_width".into(), JsonOut::Int(config.tab_width as i64)),
         ("use_tabs".into(), JsonOut::Bool(config.use_tabs)),
         ("semi".into(), JsonOut::Bool(config.semi)),
         ("single_quote".into(), JsonOut::Bool(config.single_quote)),
-        ("bracket_spacing".into(), JsonOut::Bool(config.bracket_spacing)),
+        (
+            "bracket_spacing".into(),
+            JsonOut::Bool(config.bracket_spacing)
+        ),
     ])
 }
 
@@ -105,7 +113,7 @@ pub fn tokens_from_json(value: &JsonValue) -> Option<Vec<Token>> {
         let obj = item.as_object()?;
         let kind_str = obj.get("kind")?.as_str()?;
         let kind = token_kind_from_str(kind_str)?;
-        let text = obj.get("text")?.as_str()?.to_string();
+        let text = obj.get("text")?.as_str()?.to_vstring();
         tokens.push(Token {
             kind,
             text,
@@ -123,15 +131,34 @@ mod tests {
     #[test]
     fn roundtrip_token_kinds() {
         let kinds = [
-            TokenKind::StringLiteral, TokenKind::TemplateLiteral, TokenKind::TemplateHead,
-            TokenKind::TemplateMiddle, TokenKind::TemplateTail, TokenKind::NumericLiteral,
-            TokenKind::RegexLiteral, TokenKind::Identifier, TokenKind::OpenParen,
-            TokenKind::CloseParen, TokenKind::OpenBrace, TokenKind::CloseBrace,
-            TokenKind::OpenBracket, TokenKind::CloseBracket, TokenKind::Semicolon,
-            TokenKind::Comma, TokenKind::Dot, TokenKind::Colon, TokenKind::QuestionMark,
-            TokenKind::Arrow, TokenKind::Spread, TokenKind::Operator, TokenKind::Assignment,
-            TokenKind::LineComment, TokenKind::BlockComment, TokenKind::Whitespace,
-            TokenKind::Newline, TokenKind::Eof,
+            TokenKind::StringLiteral,
+            TokenKind::TemplateLiteral,
+            TokenKind::TemplateHead,
+            TokenKind::TemplateMiddle,
+            TokenKind::TemplateTail,
+            TokenKind::NumericLiteral,
+            TokenKind::RegexLiteral,
+            TokenKind::Identifier,
+            TokenKind::OpenParen,
+            TokenKind::CloseParen,
+            TokenKind::OpenBrace,
+            TokenKind::CloseBrace,
+            TokenKind::OpenBracket,
+            TokenKind::CloseBracket,
+            TokenKind::Semicolon,
+            TokenKind::Comma,
+            TokenKind::Dot,
+            TokenKind::Colon,
+            TokenKind::QuestionMark,
+            TokenKind::Arrow,
+            TokenKind::Spread,
+            TokenKind::Operator,
+            TokenKind::Assignment,
+            TokenKind::LineComment,
+            TokenKind::BlockComment,
+            TokenKind::Whitespace,
+            TokenKind::Newline,
+            TokenKind::Eof,
         ];
         for kind in &kinds {
             let s = token_kind_str(kind);
@@ -142,15 +169,25 @@ mod tests {
 
     #[test]
     fn tokens_to_json_and_back() {
-        let tokens = vec![
-            Token { kind: TokenKind::Identifier, text: "const".into(), line: 1, col: 1 },
-            Token { kind: TokenKind::Whitespace, text: " ".into(), line: 1, col: 6 },
+        let tokens = vvec![
+            Token {
+                kind: TokenKind::Identifier,
+                text: "const".into(),
+                line: 1,
+                col: 1
+            },
+            Token {
+                kind: TokenKind::Whitespace,
+                text: " ".into(),
+                line: 1,
+                col: 6
+            },
         ];
         let json_out = tokens_to_json(&tokens);
         let serialized = json_out.serialize();
 
-        use crate::libs::lang::shared::license::parsers::json::extract_top_level;
-        let wrapped = format!(r#"{{"tokens":{serialized}}}"#);
+        use crate::core::volkiwithstds::collections::json::extract_top_level;
+        let wrapped = crate::vformat!(r#"{{"tokens":{serialized}}}"#);
         let map = extract_top_level(&wrapped);
         let parsed = tokens_from_json(map.get("tokens").unwrap()).unwrap();
 

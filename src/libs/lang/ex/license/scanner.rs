@@ -1,5 +1,7 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
 use crate::libs::lang::shared::license::heuristic::detect_license_from_file;
 use crate::libs::lang::shared::license::parsers::key_value::parse_mix_lock_deps;
@@ -13,9 +15,9 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let mix_exs = root.join("mix.exs");
 
     if !mix_exs.exists() {
-        return Err(LicenseError::NoManifest(
-            "No mix.exs found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(crate::vstr!(
+            "No mix.exs found in project directory"
+        )));
     }
 
     let project_name = read_project_name(&mix_exs);
@@ -29,9 +31,9 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     } else if deps_dir.is_dir() {
         scan_deps_dir(&deps_dir)
     } else {
-        return Err(LicenseError::NoDependencyDir(
-            "No mix.lock or deps/ found (run mix deps.get first)".to_string(),
-        ));
+        return Err(LicenseError::NoDependencyDir(crate::vstr!(
+            "No mix.lock or deps/ found (run mix deps.get first)"
+        )));
     };
 
     let mut packages = Vec::new();
@@ -55,7 +57,7 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
 fn find_elixir_dep_license(name: &str, deps_dir: &Path) -> (String, LicenseSource) {
     let dep_dir = deps_dir.join(name);
     if !dep_dir.is_dir() {
-        return ("UNKNOWN".to_string(), LicenseSource::NotFound);
+        return (crate::vstr!("UNKNOWN"), LicenseSource::NotFound);
     }
 
     let mix_exs = dep_dir.join("mix.exs");
@@ -69,7 +71,7 @@ fn find_elixir_dep_license(name: &str, deps_dir: &Path) -> (String, LicenseSourc
         return (l, LicenseSource::LicenseFile);
     }
 
-    ("UNKNOWN".to_string(), LicenseSource::NotFound)
+    (crate::vstr!("UNKNOWN"), LicenseSource::NotFound)
 }
 
 fn extract_mix_exs_license(content: &str) -> Option<String> {
@@ -81,7 +83,7 @@ fn extract_mix_exs_license(content: &str) -> Option<String> {
                 if let Some(end) = trimmed[start..].find(']') {
                     let inside = &trimmed[start + 1..start + end];
                     let licenses: Vec<&str> = inside
-                        .split(',')
+                        .split(",")
                         .map(|s| s.trim().trim_matches('"').trim_matches('\''))
                         .filter(|s| !s.is_empty())
                         .collect();
@@ -100,8 +102,9 @@ fn scan_deps_dir(deps_dir: &Path) -> Vec<(String, String)> {
     if let Ok(entries) = fs::read_dir(deps_dir) {
         for entry in entries.flatten() {
             if entry.path().is_dir() {
-                let name = entry.file_name().to_string_lossy().to_string();
-                let version = read_dep_version(&entry.path()).unwrap_or_else(|| "0.0.0".to_string());
+                let name = entry.file_name().to_vstring();
+                let version =
+                    read_dep_version(&entry.path()).unwrap_or_else(|| crate::vstr!("0.0.0"));
                 deps.push((name, version));
             }
         }
@@ -118,7 +121,7 @@ fn read_dep_version(dep_dir: &Path) -> Option<String> {
         if trimmed.contains("version:") {
             if let Some(start) = trimmed.find('"') {
                 if let Some(end) = trimmed[start + 1..].find('"') {
-                    return Some(trimmed[start + 1..start + 1 + end].to_string());
+                    return Some(trimmed[start + 1..start + 1 + end].to_vstring());
                 }
             }
         }
@@ -132,13 +135,17 @@ fn read_project_name(mix_exs: &Path) -> String {
             let trimmed = line.trim();
             if trimmed.contains("app:") {
                 if let Some(rest) = trimmed.split("app:").nth(1) {
-                    let name = rest.trim().trim_start_matches(':').trim_end_matches(',').trim();
+                    let name = rest
+                        .trim()
+                        .trim_start_matches(':')
+                        .trim_end_matches(',')
+                        .trim();
                     if !name.is_empty() {
-                        return name.to_string();
+                        return name.to_vstring();
                     }
                 }
             }
         }
     }
-    "unnamed".to_string()
+    crate::vstr!("unnamed")
 }

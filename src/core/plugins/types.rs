@@ -1,5 +1,7 @@
-use std::fmt;
-use std::path::PathBuf;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::io::IoError;
+use crate::core::volkiwithstds::path::PathBuf;
+use core::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PluginRuntime {
@@ -47,7 +49,7 @@ pub enum PluginError {
     Timeout,
     InvalidResponse(String),
     PluginStderr(String),
-    IoError(std::io::Error),
+    IoError(IoError),
     ConfigError(String),
 }
 
@@ -66,8 +68,8 @@ impl fmt::Display for PluginError {
     }
 }
 
-impl From<std::io::Error> for PluginError {
-    fn from(e: std::io::Error) -> Self {
+impl From<IoError> for PluginError {
+    fn from(e: IoError) -> Self {
         PluginError::IoError(e)
     }
 }

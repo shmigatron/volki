@@ -1,5 +1,7 @@
-use std::fmt;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fmt;
+use crate::core::volkiwithstds::path::Path;
 
 use crate::core::package::detect::types::PackageManager;
 use crate::libs::lang::shared::process::{ProcessError, run_command};
@@ -55,18 +57,18 @@ fn update_single(
     let result = match manager {
         PackageManager::Npm => {
             if latest {
-                run_command("npm", &["install", &format!("{package}@latest")], root)
+                run_command(
+                    "npm",
+                    &["install", &crate::vformat!("{package}@latest")],
+                    root,
+                )
             } else {
                 run_command("npm", &["update", package], root)
             }
         }
         PackageManager::Yarn => {
             if latest {
-                run_command(
-                    "yarn",
-                    &["add", &format!("{package}@latest")],
-                    root,
-                )
+                run_command("yarn", &["add", &crate::vformat!("{package}@latest")], root)
             } else {
                 run_command("yarn", &["upgrade", package], root)
             }
@@ -80,30 +82,30 @@ fn update_single(
         }
         PackageManager::Bun => {
             if latest {
-                run_command("bun", &["add", &format!("{package}@latest")], root)
+                run_command("bun", &["add", &crate::vformat!("{package}@latest")], root)
             } else {
                 run_command("bun", &["update", package], root)
             }
         }
         _ => {
             return UpdateResult {
-                package: package.to_string(),
+                package: package.to_vstring(),
                 success: false,
-                message: format!("Unsupported package manager: {manager}"),
+                message: crate::vformat!("Unsupported package manager: {manager}"),
             };
         }
     };
 
     match result {
         Ok(output) => UpdateResult {
-            package: package.to_string(),
+            package: package.to_vstring(),
             success: true,
             message: output,
         },
         Err(e) => UpdateResult {
-            package: package.to_string(),
+            package: package.to_vstring(),
             success: false,
-            message: e.to_string(),
+            message: e.to_vstring(),
         },
     }
 }
@@ -114,18 +116,13 @@ mod tests {
 
     #[test]
     fn update_error_display() {
-        let err = UpdateError::UnsupportedManager("cargo".to_string());
-        assert!(format!("{err}").contains("cargo"));
+        let err = UpdateError::UnsupportedManager(crate::vstr!("cargo"));
+        assert!(crate::vformat!("{err}").contains("cargo"));
     }
 
     #[test]
     fn unsupported_manager_returns_failure() {
-        let result = update_single(
-            Path::new("."),
-            &PackageManager::Cargo,
-            "lodash",
-            false,
-        );
+        let result = update_single(Path::new("."), &PackageManager::Cargo, "lodash", false);
         assert!(!result.success);
         assert!(result.message.contains("Unsupported"));
     }

@@ -1,4 +1,6 @@
-use std::path::Path;
+use crate::core::volkiwithstds::path::Path;
+
+use crate::veprintln;
 
 use crate::core::cli::command::Command;
 use crate::core::cli::error::CliError;
@@ -29,46 +31,48 @@ impl Command for InitCommand {
     }
 
     fn execute(&self, args: &ParsedArgs) -> Result<(), CliError> {
-        let dir = args
-            .positional()
-            .first()
-            .map(|s| s.as_str())
-            .unwrap_or(".");
+        let dir = args.positional().first().map(|s| s.as_str()).unwrap_or(".");
 
         let dir_path = Path::new(dir);
-        log_debug!("init target: {}", dir_path.display());
+        log_debug!("init target: {}", dir_path.as_str());
 
         let projects = detector::detect(dir_path)
-            .map_err(|e| CliError::InvalidUsage(e.to_string()))?;
+            .map_err(|e| CliError::InvalidUsage(crate::vformat!("{e}")))?;
 
         let path = VolkiConfig::init(dir_path, &projects)
-            .map_err(|e| CliError::InvalidUsage(e.to_string()))?;
+            .map_err(|e| CliError::InvalidUsage(crate::vformat!("{e}")))?;
 
         output::print_item(
             &style::green(style::CHECK),
-            &format!("created {}", path.display()),
+            &crate::vformat!("created {}", path.as_str()),
         );
 
         if let Some(project) = projects.first() {
             output::print_item(
                 &style::dim(style::ARROW),
-                &format!("ecosystem: {}", style::bold(&project.ecosystem.to_string())),
+                &crate::vformat!(
+                    "ecosystem: {}",
+                    style::bold(&crate::vformat!("{}", project.ecosystem))
+                ),
             );
             output::print_item(
                 &style::dim(style::ARROW),
-                &format!("manager: {}", style::bold(&project.manager.to_string())),
+                &crate::vformat!(
+                    "manager: {}",
+                    style::bold(&crate::vformat!("{}", project.manager))
+                ),
             );
             if let Some(ref fw) = project.framework {
                 output::print_item(
                     &style::dim(style::ARROW),
-                    &format!("framework: {}", style::bold(&fw.to_string())),
+                    &crate::vformat!("framework: {}", style::bold(&crate::vformat!("{fw}"))),
                 );
             }
         }
 
-        eprintln!();
+        veprintln!();
         output::print_hint("run volki status to check your project");
-        eprintln!();
+        veprintln!();
         Ok(())
     }
 }

@@ -1,4 +1,6 @@
-use std::fmt;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fmt;
 
 use super::config::{ArrowParens, EndOfLine, FormatConfig, TrailingComma};
 use super::plugin_bridge;
@@ -7,6 +9,7 @@ use super::tokenizer::{Token, TokenKind, tokenize};
 use crate::core::plugins::protocol::{JsonOut, PluginRequest, PluginResponse};
 use crate::core::plugins::registry::PluginRegistry;
 use crate::core::plugins::types::PluginSpec;
+use crate::{vstr, vvec};
 
 #[derive(Debug)]
 pub struct FormatError {
@@ -19,15 +22,16 @@ impl fmt::Display for FormatError {
     }
 }
 
-impl std::error::Error for FormatError {}
+impl core::error::Error for FormatError {}
 
 pub fn format_source(
     source: &str,
     config: &FormatConfig,
     plugins: Option<&PluginRegistry>,
 ) -> Result<String, FormatError> {
-    let mut tokens = tokenize(source)
-        .map_err(|e| FormatError { message: e.to_string() })?;
+    let mut tokens = tokenize(source).map_err(|e| FormatError {
+        message: e.to_vstring(),
+    })?;
 
     run_plugin_hook(&mut tokens, config, plugins, "formatter.before_all");
 
@@ -61,14 +65,14 @@ fn run_plugin_hook(
         _ => return,
     };
 
-    let hook_str = hook.to_string();
+    let hook_str = hook.to_vstring();
     let config_json = plugin_bridge::config_to_json(config);
 
     let results = registry.invoke_hook(&|spec: &PluginSpec| {
         let tokens_json = plugin_bridge::tokens_to_json(tokens);
         PluginRequest {
             hook: hook_str.clone(),
-            data: JsonOut::Object(vec![
+            data: JsonOut::Object(vvec![
                 ("tokens".into(), tokens_json),
                 ("config".into(), config_json.clone()),
             ]),
@@ -89,10 +93,10 @@ fn run_plugin_hook(
             }
             Ok(PluginResponse::Skip) => {}
             Ok(PluginResponse::Error { message }) => {
-                eprintln!("plugin error at hook {hook}: {message}");
+                crate::veprintln!("plugin error at hook {hook}: {message}");
             }
             Err(e) => {
-                eprintln!("plugin invocation error at hook {hook}: {e}");
+                crate::veprintln!("plugin invocation error at hook {hook}: {e}");
             }
         }
     }
@@ -106,7 +110,7 @@ fn normalize_line_endings(tokens: &mut Vec<Token>, config: &FormatConfig) {
     }
     for token in tokens.iter_mut() {
         if token.kind == TokenKind::Newline {
-            token.text = eol.to_string();
+            token.text = eol.to_vstring();
         }
     }
 }
@@ -185,16 +189,33 @@ fn normalize_semicolons(tokens: &mut Vec<Token>, config: &FormatConfig) {
 }
 
 fn is_statement_end(kind: &TokenKind) -> bool {
-    matches!(kind,
-        TokenKind::Identifier | TokenKind::NumericLiteral | TokenKind::StringLiteral |
-        TokenKind::TemplateLiteral | TokenKind::TemplateTail |
-        TokenKind::CloseParen | TokenKind::CloseBracket |
-        TokenKind::RegexLiteral
+    matches!(
+        kind,
+        TokenKind::Identifier
+            | TokenKind::NumericLiteral
+            | TokenKind::StringLiteral
+            | TokenKind::TemplateLiteral
+            | TokenKind::TemplateTail
+            | TokenKind::CloseParen
+            | TokenKind::CloseBracket
+            | TokenKind::RegexLiteral
     )
 }
 
 fn is_keyword_no_semi(text: &str) -> bool {
-    matches!(text, "if" | "else" | "for" | "while" | "do" | "switch" | "try" | "catch" | "finally" | "class" | "function")
+    matches!(
+        text,
+        "if" | "else"
+            | "for"
+            | "while"
+            | "do"
+            | "switch"
+            | "try"
+            | "catch"
+            | "finally"
+            | "class"
+            | "function"
+    )
 }
 
 fn insert_semicolons(tokens: &mut Vec<Token>) {
@@ -226,7 +247,9 @@ fn insert_semicolons(tokens: &mut Vec<Token>) {
                     TokenKind::Operator if tokens[ni].text == "?" => continue,
                     _ => {}
                 }
-                if tokens[ni].kind == TokenKind::Identifier && matches!(tokens[ni].text.as_str(), "else" | "catch" | "finally") {
+                if tokens[ni].kind == TokenKind::Identifier
+                    && matches!(tokens[ni].text.as_str(), "else" | "catch" | "finally")
+                {
                     continue;
                 }
             }
@@ -240,12 +263,15 @@ fn insert_semicolons(tokens: &mut Vec<Token>) {
     for (offset, idx) in insertions.iter().enumerate() {
         let line = tokens[idx + offset].line;
         let col = tokens[idx + offset].col;
-        tokens.insert(idx + offset, Token {
-            kind: TokenKind::Semicolon,
-            text: ";".into(),
-            line,
-            col,
-        });
+        tokens.insert(
+            idx + offset,
+            Token {
+                kind: TokenKind::Semicolon,
+                text: ";".into(),
+                line,
+                col,
+            },
+        );
     }
 }
 
@@ -257,10 +283,13 @@ fn remove_semicolons(tokens: &mut Vec<Token>) {
         }
         let next_sig = find_significant_after(tokens, i);
         if let Some(ni) = next_sig {
-            let is_asi_hazard = matches!(tokens[ni].kind,
+            let is_asi_hazard = matches!(
+                tokens[ni].kind,
                 TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::RegexLiteral
-            ) || (tokens[ni].kind == TokenKind::TemplateLiteral || tokens[ni].kind == TokenKind::TemplateHead)
-              || (tokens[ni].kind == TokenKind::Operator && (tokens[ni].text == "+" || tokens[ni].text == "-"));
+            ) || (tokens[ni].kind == TokenKind::TemplateLiteral
+                || tokens[ni].kind == TokenKind::TemplateHead)
+                || (tokens[ni].kind == TokenKind::Operator
+                    && (tokens[ni].text == "+" || tokens[ni].text == "-"));
 
             if is_asi_hazard {
                 continue;
@@ -285,7 +314,8 @@ fn is_inside_for_parens(tokens: &[Token], pos: usize) -> bool {
             TokenKind::OpenParen => {
                 if depth == 0 {
                     if let Some(pi) = find_significant_before(tokens, i) {
-                        return tokens[pi].kind == TokenKind::Identifier && tokens[pi].text == "for";
+                        return tokens[pi].kind == TokenKind::Identifier
+                            && tokens[pi].text == "for";
                     }
                     return false;
                 }
@@ -318,11 +348,22 @@ fn is_object_literal_brace(tokens: &[Token], pos: usize) -> bool {
     let prev = find_significant_before(tokens, pos);
     match prev {
         None => true,
-        Some(pi) => matches!(tokens[pi].kind,
-            TokenKind::Assignment | TokenKind::Comma | TokenKind::OpenParen |
-            TokenKind::OpenBracket | TokenKind::Colon | TokenKind::Arrow |
-            TokenKind::Semicolon
-        ) || (tokens[pi].kind == TokenKind::Identifier && matches!(tokens[pi].text.as_str(), "return" | "export" | "default" | "yield" | "await")),
+        Some(pi) => {
+            matches!(
+                tokens[pi].kind,
+                TokenKind::Assignment
+                    | TokenKind::Comma
+                    | TokenKind::OpenParen
+                    | TokenKind::OpenBracket
+                    | TokenKind::Colon
+                    | TokenKind::Arrow
+                    | TokenKind::Semicolon
+            ) || (tokens[pi].kind == TokenKind::Identifier
+                && matches!(
+                    tokens[pi].text.as_str(),
+                    "return" | "export" | "default" | "yield" | "await"
+                ))
+        }
     }
 }
 
@@ -377,7 +418,8 @@ fn apply_brace_spacing(tokens: &mut [Token], open: usize, close: usize, spacing:
 fn normalize_trailing_commas(tokens: &mut Vec<Token>, config: &FormatConfig) {
     let mut i = 0;
     while i < tokens.len() {
-        let is_close = matches!(tokens[i].kind,
+        let is_close = matches!(
+            tokens[i].kind,
             TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace
         );
         if !is_close {
@@ -404,12 +446,15 @@ fn normalize_trailing_commas(tokens: &mut Vec<Token>, config: &FormatConfig) {
                     let line = tokens[pi].line;
                     let col = tokens[pi].col;
                     let insert_at = pi + 1;
-                    tokens.insert(insert_at, Token {
-                        kind: TokenKind::Comma,
-                        text: ",".into(),
-                        line,
-                        col,
-                    });
+                    tokens.insert(
+                        insert_at,
+                        Token {
+                            kind: TokenKind::Comma,
+                            text: ",".into(),
+                            line,
+                            col,
+                        },
+                    );
                     i += 2;
                     continue;
                 }
@@ -437,11 +482,17 @@ fn normalize_trailing_commas(tokens: &mut Vec<Token>, config: &FormatConfig) {
 }
 
 fn is_comma_eligible(token: &Token) -> bool {
-    matches!(token.kind,
-        TokenKind::Identifier | TokenKind::NumericLiteral | TokenKind::StringLiteral |
-        TokenKind::TemplateLiteral | TokenKind::TemplateTail |
-        TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace |
-        TokenKind::RegexLiteral
+    matches!(
+        token.kind,
+        TokenKind::Identifier
+            | TokenKind::NumericLiteral
+            | TokenKind::StringLiteral
+            | TokenKind::TemplateLiteral
+            | TokenKind::TemplateTail
+            | TokenKind::CloseParen
+            | TokenKind::CloseBracket
+            | TokenKind::CloseBrace
+            | TokenKind::RegexLiteral
     )
 }
 
@@ -494,17 +545,31 @@ fn add_arrow_parens(tokens: &mut Vec<Token>) {
                     let before_ident = find_significant_before(tokens, pi);
                     let is_bare = match before_ident {
                         None => true,
-                        Some(bi) => !matches!(tokens[bi].kind, TokenKind::CloseParen | TokenKind::Dot),
+                        Some(bi) => {
+                            !matches!(tokens[bi].kind, TokenKind::CloseParen | TokenKind::Dot)
+                        }
                     };
                     if is_bare {
                         let line = tokens[pi].line;
                         let col = tokens[pi].col;
-                        tokens.insert(pi + 1, Token {
-                            kind: TokenKind::CloseParen, text: ")".into(), line, col,
-                        });
-                        tokens.insert(pi, Token {
-                            kind: TokenKind::OpenParen, text: "(".into(), line, col,
-                        });
+                        tokens.insert(
+                            pi + 1,
+                            Token {
+                                kind: TokenKind::CloseParen,
+                                text: ")".into(),
+                                line,
+                                col,
+                            },
+                        );
+                        tokens.insert(
+                            pi,
+                            Token {
+                                kind: TokenKind::OpenParen,
+                                text: "(".into(),
+                                line,
+                                col,
+                            },
+                        );
                         i += 3; // skip past the arrow
                         continue;
                     }
@@ -526,20 +591,45 @@ fn remove_arrow_parens(tokens: &mut Vec<Token>) {
                     if let Some(oi) = open_idx {
                         // Check: exactly one simple identifier between parens
                         let inner_sig: Vec<usize> = ((oi + 1)..close_idx)
-                            .filter(|&j| !matches!(tokens[j].kind, TokenKind::Whitespace | TokenKind::Newline))
+                            .filter(|&j| {
+                                !matches!(
+                                    tokens[j].kind,
+                                    TokenKind::Whitespace | TokenKind::Newline
+                                )
+                            })
                             .collect();
-                        if inner_sig.len() == 1 && tokens[inner_sig[0]].kind == TokenKind::Identifier {
+                        if inner_sig.len() == 1
+                            && tokens[inner_sig[0]].kind == TokenKind::Identifier
+                        {
                             // No type annotation or default value
                             let before_open = find_significant_before(tokens, oi);
                             let is_arrow_param = match before_open {
                                 None => true,
-                                Some(bi) => matches!(tokens[bi].kind,
-                                    TokenKind::Assignment | TokenKind::Comma | TokenKind::OpenParen |
-                                    TokenKind::Semicolon | TokenKind::Arrow | TokenKind::Colon |
-                                    TokenKind::OpenBrace | TokenKind::OpenBracket
-                                ) || (tokens[bi].kind == TokenKind::Identifier && matches!(tokens[bi].text.as_str(),
-                                    "return" | "const" | "let" | "var" | "export" | "default" | "yield" | "await" | "=>"
-                                )),
+                                Some(bi) => {
+                                    matches!(
+                                        tokens[bi].kind,
+                                        TokenKind::Assignment
+                                            | TokenKind::Comma
+                                            | TokenKind::OpenParen
+                                            | TokenKind::Semicolon
+                                            | TokenKind::Arrow
+                                            | TokenKind::Colon
+                                            | TokenKind::OpenBrace
+                                            | TokenKind::OpenBracket
+                                    ) || (tokens[bi].kind == TokenKind::Identifier
+                                        && matches!(
+                                            tokens[bi].text.as_str(),
+                                            "return"
+                                                | "const"
+                                                | "let"
+                                                | "var"
+                                                | "export"
+                                                | "default"
+                                                | "yield"
+                                                | "await"
+                                                | "=>"
+                                        ))
+                                }
                             };
                             if is_arrow_param {
                                 tokens.remove(close_idx);
@@ -584,9 +674,19 @@ fn collapse_blank_lines(tokens: &mut Vec<Token>) {
             if newline_count > 2 {
                 // Keep at most 2 newlines (one blank line)
                 let eol = tokens[i].text.clone();
-                let mut keep = vec![
-                    Token { kind: TokenKind::Newline, text: eol.clone(), line: 0, col: 0 },
-                    Token { kind: TokenKind::Newline, text: eol, line: 0, col: 0 },
+                let mut keep = vvec![
+                    Token {
+                        kind: TokenKind::Newline,
+                        text: eol.clone(),
+                        line: 0,
+                        col: 0
+                    },
+                    Token {
+                        kind: TokenKind::Newline,
+                        text: eol,
+                        line: 0,
+                        col: 0
+                    },
                 ];
                 // Preserve trailing whitespace (indentation of next line)
                 if j > 0 && j < tokens.len() && tokens[j - 1].kind == TokenKind::Whitespace {
@@ -620,9 +720,9 @@ fn is_after_newline(tokens: &[Token], pos: usize) -> bool {
 
 fn reindent(tokens: &mut Vec<Token>, config: &FormatConfig) {
     let indent_str = if config.use_tabs {
-        "\t".to_string()
+        vstr!("\t")
     } else {
-        " ".repeat(config.tab_width)
+        vstr!(" ").repeat(config.tab_width)
     };
 
     let mut depth: usize = 0;
@@ -644,7 +744,10 @@ fn reindent(tokens: &mut Vec<Token>, config: &FormatConfig) {
             if next_idx < tokens.len() {
                 // Peek at close delimiter after whitespace to dedent
                 let effective_depth = if let Some(close_idx) = find_first_non_ws(tokens, next_idx) {
-                    if matches!(tokens[close_idx].kind, TokenKind::CloseBrace | TokenKind::CloseBracket | TokenKind::CloseParen) {
+                    if matches!(
+                        tokens[close_idx].kind,
+                        TokenKind::CloseBrace | TokenKind::CloseBracket | TokenKind::CloseParen
+                    ) {
                         depth.saturating_sub(1)
                     } else {
                         depth
@@ -656,13 +759,19 @@ fn reindent(tokens: &mut Vec<Token>, config: &FormatConfig) {
                 let new_indent = indent_str.repeat(effective_depth);
                 if tokens[next_idx].kind == TokenKind::Whitespace {
                     tokens[next_idx].text = new_indent;
-                } else if effective_depth > 0 && tokens[next_idx].kind != TokenKind::Newline && tokens[next_idx].kind != TokenKind::Eof {
-                    tokens.insert(next_idx, Token {
-                        kind: TokenKind::Whitespace,
-                        text: new_indent,
-                        line: 0,
-                        col: 0,
-                    });
+                } else if effective_depth > 0
+                    && tokens[next_idx].kind != TokenKind::Newline
+                    && tokens[next_idx].kind != TokenKind::Eof
+                {
+                    tokens.insert(
+                        next_idx,
+                        Token {
+                            kind: TokenKind::Whitespace,
+                            text: new_indent,
+                            line: 0,
+                            col: 0,
+                        },
+                    );
                 }
             }
         }
@@ -776,8 +885,7 @@ fn classify_group_kind(tokens: &[Token], open_idx: usize) -> GroupKind {
                 {
                     return GroupKind::FunctionParams;
                 }
-                if tokens[pi].kind == TokenKind::Identifier
-                    && !is_control_keyword(&tokens[pi].text)
+                if tokens[pi].kind == TokenKind::Identifier && !is_control_keyword(&tokens[pi].text)
                 {
                     return GroupKind::FunctionCall;
                 }
@@ -800,7 +908,27 @@ fn classify_group_kind(tokens: &[Token], open_idx: usize) -> GroupKind {
 }
 
 fn is_control_keyword(text: &str) -> bool {
-    matches!(text, "if" | "else" | "for" | "while" | "do" | "switch" | "catch" | "with" | "return" | "throw" | "new" | "delete" | "typeof" | "void" | "in" | "of" | "instanceof" | "await" | "yield")
+    matches!(
+        text,
+        "if" | "else"
+            | "for"
+            | "while"
+            | "do"
+            | "switch"
+            | "catch"
+            | "with"
+            | "return"
+            | "throw"
+            | "new"
+            | "delete"
+            | "typeof"
+            | "void"
+            | "in"
+            | "of"
+            | "instanceof"
+            | "await"
+            | "yield"
+    )
 }
 
 fn build_group_tree(tokens: &[Token]) -> Vec<DelimiterGroup> {
@@ -808,7 +936,10 @@ fn build_group_tree(tokens: &[Token]) -> Vec<DelimiterGroup> {
     let mut stack: Vec<usize> = Vec::new(); // stack of group indices
 
     for i in 0..tokens.len() {
-        if matches!(tokens[i].kind, TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace) {
+        if matches!(
+            tokens[i].kind,
+            TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace
+        ) {
             if let Some(ci) = find_matching_close(tokens, i) {
                 let kind = classify_group_kind(tokens, i);
                 let flat_len = measure_flat_length(tokens, i, ci);
@@ -819,8 +950,12 @@ fn build_group_tree(tokens: &[Token]) -> Vec<DelimiterGroup> {
                 let mut depth: usize = 0;
                 for j in (i + 1)..ci {
                     match tokens[j].kind {
-                        TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace => depth += 1,
-                        TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => depth = depth.saturating_sub(1),
+                        TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace => {
+                            depth += 1
+                        }
+                        TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => {
+                            depth = depth.saturating_sub(1)
+                        }
                         TokenKind::Comma if depth == 0 => commas.push(j),
                         _ => {}
                     }
@@ -843,7 +978,10 @@ fn build_group_tree(tokens: &[Token]) -> Vec<DelimiterGroup> {
 
                 stack.push(gidx);
             }
-        } else if matches!(tokens[i].kind, TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace) {
+        } else if matches!(
+            tokens[i].kind,
+            TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace
+        ) {
             if let Some(&top) = stack.last() {
                 if groups[top].close_idx == i {
                     stack.pop();
@@ -878,7 +1016,9 @@ fn is_expandable_last_arg(tokens: &[Token], start: usize, end: usize) -> bool {
     for i in start..=end {
         match tokens[i].kind {
             TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace => depth += 1,
-            TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => depth = depth.saturating_sub(1),
+            TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => {
+                depth = depth.saturating_sub(1)
+            }
             TokenKind::Arrow if depth == 0 => {
                 // Arrow function — expandable if it has a block body
                 if let Some(after) = find_significant_after(tokens, i) {
@@ -920,7 +1060,13 @@ fn is_expandable_last_arg(tokens: &[Token], start: usize, end: usize) -> bool {
 
 fn find_first_significant(tokens: &[Token], from: usize, to: usize) -> Option<usize> {
     for i in from..=to {
-        if !matches!(tokens[i].kind, TokenKind::Whitespace | TokenKind::Newline | TokenKind::LineComment | TokenKind::BlockComment) {
+        if !matches!(
+            tokens[i].kind,
+            TokenKind::Whitespace
+                | TokenKind::Newline
+                | TokenKind::LineComment
+                | TokenKind::BlockComment
+        ) {
             return Some(i);
         }
     }
@@ -958,7 +1104,10 @@ fn decide_breaks(
     groups: &[DelimiterGroup],
     config: &FormatConfig,
 ) -> Vec<BreakDecision> {
-    let mut decisions = vec![BreakDecision::Flat; groups.len()];
+    let mut decisions = Vec::with_capacity(groups.len());
+    for _ in 0..groups.len() {
+        decisions.push(BreakDecision::Flat);
+    }
 
     // Process from innermost to outermost (higher index = deeper in our tree)
     // We iterate in reverse since children are pushed after parents
@@ -1037,7 +1186,7 @@ fn apply_wrap_decisions(
     decisions: &[BreakDecision],
     config: &FormatConfig,
 ) {
-    let eol = config.end_of_line.as_str().to_string();
+    let eol = config.end_of_line.as_str().to_vstring();
 
     // We need to process groups but indices shift as we insert/remove.
     // Strategy: process groups sorted by open_idx descending (rightmost first)
@@ -1093,7 +1242,9 @@ fn flatten_group(tokens: &mut Vec<Token>, open: usize, _close: usize, _eol: &str
         for j in (open + 1)..i {
             match tokens[j].kind {
                 TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace => depth += 1,
-                TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => depth = depth.saturating_sub(1),
+                TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => {
+                    depth = depth.saturating_sub(1)
+                }
                 _ => {}
             }
         }
@@ -1104,23 +1255,40 @@ fn flatten_group(tokens: &mut Vec<Token>, open: usize, _close: usize, _eol: &str
         if at_depth_0 && tokens[i].kind == TokenKind::Newline {
             // Remove newline and following indentation whitespace, replace with space
             tokens.remove(i);
-            if i < tokens.len() && tokens[i].kind == TokenKind::Whitespace
+            if i < tokens.len()
+                && tokens[i].kind == TokenKind::Whitespace
                 && (i == 0 || tokens[i - 1].kind != TokenKind::Newline || true)
             {
                 // Check if this whitespace is indentation (comes right after where the newline was)
                 tokens.remove(i);
             }
             // Insert a space if previous and next tokens need separation
-            if i > 0 && i < tokens.len()
-                && !matches!(tokens[i - 1].kind, TokenKind::Whitespace | TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace)
-                && !matches!(tokens[i].kind, TokenKind::Whitespace | TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace)
+            if i > 0
+                && i < tokens.len()
+                && !matches!(
+                    tokens[i - 1].kind,
+                    TokenKind::Whitespace
+                        | TokenKind::OpenParen
+                        | TokenKind::OpenBracket
+                        | TokenKind::OpenBrace
+                )
+                && !matches!(
+                    tokens[i].kind,
+                    TokenKind::Whitespace
+                        | TokenKind::CloseParen
+                        | TokenKind::CloseBracket
+                        | TokenKind::CloseBrace
+                )
             {
-                tokens.insert(i, Token {
-                    kind: TokenKind::Whitespace,
-                    text: " ".into(),
-                    line: 0,
-                    col: 0,
-                });
+                tokens.insert(
+                    i,
+                    Token {
+                        kind: TokenKind::Whitespace,
+                        text: " ".into(),
+                        line: 0,
+                        col: 0,
+                    },
+                );
                 i += 1;
             }
             continue;
@@ -1173,12 +1341,15 @@ fn expand_group(tokens: &mut Vec<Token>, open: usize, _close: usize, eol: &str) 
             tokens.remove(ci + 1);
         }
         // Insert newline after comma
-        tokens.insert(ci + 1, Token {
-            kind: TokenKind::Newline,
-            text: eol.to_string(),
-            line: 0,
-            col: 0,
-        });
+        tokens.insert(
+            ci + 1,
+            Token {
+                kind: TokenKind::Newline,
+                text: eol.to_vstring(),
+                line: 0,
+                col: 0,
+            },
+        );
     }
 
     // 3. After open delim
@@ -1186,12 +1357,15 @@ fn expand_group(tokens: &mut Vec<Token>, open: usize, _close: usize, eol: &str) 
     if open + 1 < tokens.len() && tokens[open + 1].kind == TokenKind::Whitespace {
         tokens.remove(open + 1);
     }
-    tokens.insert(open + 1, Token {
-        kind: TokenKind::Newline,
-        text: eol.to_string(),
-        line: 0,
-        col: 0,
-    });
+    tokens.insert(
+        open + 1,
+        Token {
+            kind: TokenKind::Newline,
+            text: eol.to_vstring(),
+            line: 0,
+            col: 0,
+        },
+    );
 }
 
 fn ensure_commas_have_newlines(tokens: &mut Vec<Token>, open: usize, eol: &str) {
@@ -1206,19 +1380,25 @@ fn ensure_commas_have_newlines(tokens: &mut Vec<Token>, open: usize, eol: &str) 
                 }
                 // Replace whitespace with newline
                 tokens.remove(after);
-                tokens.insert(after, Token {
-                    kind: TokenKind::Newline,
-                    text: eol.to_string(),
-                    line: 0,
-                    col: 0,
-                });
+                tokens.insert(
+                    after,
+                    Token {
+                        kind: TokenKind::Newline,
+                        text: eol.to_vstring(),
+                        line: 0,
+                        col: 0,
+                    },
+                );
             } else if tokens[after].kind != TokenKind::Newline {
-                tokens.insert(after, Token {
-                    kind: TokenKind::Newline,
-                    text: eol.to_string(),
-                    line: 0,
-                    col: 0,
-                });
+                tokens.insert(
+                    after,
+                    Token {
+                        kind: TokenKind::Newline,
+                        text: eol.to_vstring(),
+                        line: 0,
+                        col: 0,
+                    },
+                );
             }
         }
     }
@@ -1234,7 +1414,9 @@ fn collect_depth0_commas(tokens: &[Token], open: usize) -> Vec<usize> {
     for i in (open + 1)..close {
         match tokens[i].kind {
             TokenKind::OpenParen | TokenKind::OpenBracket | TokenKind::OpenBrace => depth += 1,
-            TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => depth = depth.saturating_sub(1),
+            TokenKind::CloseParen | TokenKind::CloseBracket | TokenKind::CloseBrace => {
+                depth = depth.saturating_sub(1)
+            }
             TokenKind::Comma if depth == 0 => commas.push(i),
             _ => {}
         }
@@ -1250,20 +1432,26 @@ fn insert_newline_before(tokens: &mut Vec<Token>, pos: usize, eol: &str) {
         if pos > 0 && tokens[pos - 1].kind == TokenKind::Newline {
             return; // already has newline
         }
-        tokens.insert(pos, Token {
-            kind: TokenKind::Newline,
-            text: eol.to_string(),
-            line: 0,
-            col: 0,
-        });
+        tokens.insert(
+            pos,
+            Token {
+                kind: TokenKind::Newline,
+                text: eol.to_vstring(),
+                line: 0,
+                col: 0,
+            },
+        );
     } else if pos > 0 && tokens[pos - 1].kind == TokenKind::Newline {
     } else {
-        tokens.insert(pos, Token {
-            kind: TokenKind::Newline,
-            text: eol.to_string(),
-            line: 0,
-            col: 0,
-        });
+        tokens.insert(
+            pos,
+            Token {
+                kind: TokenKind::Newline,
+                text: eol.to_vstring(),
+                line: 0,
+                col: 0,
+            },
+        );
     }
 }
 
@@ -1344,7 +1532,7 @@ fn apply_method_chain_breaks(tokens: &mut Vec<Token>, config: &FormatConfig) {
                 let col = column_at(tokens, chain_start);
 
                 if col + flat_len > config.print_width {
-                    let eol = config.end_of_line.as_str().to_string();
+                    let eol = config.end_of_line.as_str().to_vstring();
                     // Insert newlines before each dot in the chain (reverse order)
                     for &dot_idx in chain.iter().rev() {
                         // Don't break if there's already a newline before the dot
@@ -1363,21 +1551,27 @@ fn apply_method_chain_breaks(tokens: &mut Vec<Token>, config: &FormatConfig) {
                             if tokens[prev].kind == TokenKind::Whitespace {
                                 tokens.remove(prev);
                                 let dot_idx = dot_idx - 1;
-                                tokens.insert(dot_idx, Token {
-                                    kind: TokenKind::Newline,
-                                    text: eol.clone(),
-                                    line: 0,
-                                    col: 0,
-                                });
+                                tokens.insert(
+                                    dot_idx,
+                                    Token {
+                                        kind: TokenKind::Newline,
+                                        text: eol.clone(),
+                                        line: 0,
+                                        col: 0,
+                                    },
+                                );
                                 continue;
                             }
                         }
-                        tokens.insert(dot_idx, Token {
-                            kind: TokenKind::Newline,
-                            text: eol.clone(),
-                            line: 0,
-                            col: 0,
-                        });
+                        tokens.insert(
+                            dot_idx,
+                            Token {
+                                kind: TokenKind::Newline,
+                                text: eol.clone(),
+                                line: 0,
+                                col: 0,
+                            },
+                        );
                     }
                     // Skip past the chain we just processed
                     i = chain_end + chain.len() + 1;
@@ -1390,7 +1584,7 @@ fn apply_method_chain_breaks(tokens: &mut Vec<Token>, config: &FormatConfig) {
 }
 
 fn detect_method_chain(tokens: &[Token], start_dot: usize) -> Vec<usize> {
-    let mut dots = vec![start_dot];
+    let mut dots = vvec![start_dot];
     let mut i = start_dot;
 
     // Walk forward through .method() chains
@@ -1489,12 +1683,15 @@ fn fixup_trailing_commas(
                             && is_comma_eligible(&tokens[pi])
                             && !is_empty_body_range(tokens, open_idx, close_idx)
                         {
-                            tokens.insert(pi + 1, Token {
-                                kind: TokenKind::Comma,
-                                text: ",".into(),
-                                line: 0,
-                                col: 0,
-                            });
+                            tokens.insert(
+                                pi + 1,
+                                Token {
+                                    kind: TokenKind::Comma,
+                                    text: ",".into(),
+                                    line: 0,
+                                    col: 0,
+                                },
+                            );
                         }
                     }
                 }
@@ -1507,7 +1704,12 @@ fn fixup_trailing_commas(
                         // expanded arg, remove the trailing comma
                         let before_comma = find_significant_before(tokens, pi);
                         if let Some(bi) = before_comma {
-                            if matches!(tokens[bi].kind, TokenKind::CloseBrace | TokenKind::CloseBracket | TokenKind::CloseParen) {
+                            if matches!(
+                                tokens[bi].kind,
+                                TokenKind::CloseBrace
+                                    | TokenKind::CloseBracket
+                                    | TokenKind::CloseParen
+                            ) {
                                 tokens.remove(pi);
                             }
                         }
@@ -1546,7 +1748,13 @@ fn serialize(tokens: &[Token], config: &FormatConfig) -> String {
 // Helpers
 fn find_significant_before(tokens: &[Token], pos: usize) -> Option<usize> {
     for i in (0..pos).rev() {
-        if !matches!(tokens[i].kind, TokenKind::Whitespace | TokenKind::Newline | TokenKind::LineComment | TokenKind::BlockComment) {
+        if !matches!(
+            tokens[i].kind,
+            TokenKind::Whitespace
+                | TokenKind::Newline
+                | TokenKind::LineComment
+                | TokenKind::BlockComment
+        ) {
             return Some(i);
         }
     }
@@ -1555,7 +1763,13 @@ fn find_significant_before(tokens: &[Token], pos: usize) -> Option<usize> {
 
 fn find_significant_after(tokens: &[Token], pos: usize) -> Option<usize> {
     for i in (pos + 1)..tokens.len() {
-        if !matches!(tokens[i].kind, TokenKind::Whitespace | TokenKind::Newline | TokenKind::LineComment | TokenKind::BlockComment) {
+        if !matches!(
+            tokens[i].kind,
+            TokenKind::Whitespace
+                | TokenKind::Newline
+                | TokenKind::LineComment
+                | TokenKind::BlockComment
+        ) {
             return Some(i);
         }
     }
@@ -1612,7 +1826,7 @@ mod tests {
         let mut config = FormatConfig::default();
         config.semi = false;
         let result = fmt_with("const x = 1;\nconst y = 2;\n", &config);
-        assert!(!result.contains(';'));
+        assert!(!result.contains(";"));
     }
 
     #[test]
@@ -1682,7 +1896,7 @@ mod tests {
     fn normalize_crlf_to_lf() {
         let result = fmt("a\r\nb");
         assert!(!result.contains("\r\n"));
-        assert!(result.contains('\n'));
+        assert!(result.contains("\n"));
     }
 
     // Whitespace
@@ -1739,16 +1953,29 @@ mod tests {
     fn wrap_all_or_nothing_args() {
         let input = "someFunction(firstArgument, secondArgument, thirdArgument, fourthArgument, fifthArgument);";
         let result = fmt(input);
-        assert!(result.contains("\n"), "Long call should be wrapped, got: {result}");
-        assert!(result.contains("firstArgument,"), "Args should be present, got: {result}");
-        assert!(result.contains("secondArgument,"), "Args should be present, got: {result}");
+        assert!(
+            result.contains("\n"),
+            "Long call should be wrapped, got: {result}"
+        );
+        assert!(
+            result.contains("firstArgument,"),
+            "Args should be present, got: {result}"
+        );
+        assert!(
+            result.contains("secondArgument,"),
+            "Args should be present, got: {result}"
+        );
     }
 
     #[test]
     fn wrap_array_expansion() {
-        let input = r#"const arr = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf"];"#;
+        let input =
+            r#"const arr = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf"];"#;
         let result = fmt(input);
-        assert!(result.contains("\n"), "Long array should expand, got: {result}");
+        assert!(
+            result.contains("\n"),
+            "Long array should expand, got: {result}"
+        );
         for item in &["\"alpha\",", "\"bravo\",", "\"charlie\","] {
             assert!(result.contains(item), "Expected {item} in result: {result}");
         }
@@ -1756,10 +1983,17 @@ mod tests {
 
     #[test]
     fn wrap_object_expansion() {
-        let input = "const obj = { alpha: 1, beta: 2, gamma: 3, delta: 4, epsilon: 5, zeta: 6, eta: 7 };";
+        let input =
+            "const obj = { alpha: 1, beta: 2, gamma: 3, delta: 4, epsilon: 5, zeta: 6, eta: 7 };";
         let result = fmt(input);
-        assert!(result.contains("\n"), "Long object should expand, got: {result}");
-        assert!(result.contains("alpha: 1,"), "Props should be present, got: {result}");
+        assert!(
+            result.contains("\n"),
+            "Long object should expand, got: {result}"
+        );
+        assert!(
+            result.contains("alpha: 1,"),
+            "Props should be present, got: {result}"
+        );
     }
 
     #[test]
@@ -1768,13 +2002,20 @@ mod tests {
         config.print_width = 50;
         let input = r#"app.get("/path", (req, res) => { res.send("ok"); });"#;
         let result = fmt_with(input, &config);
-        assert!(result.contains("app.get("), "Call should start on first line, got: {result}");
-        assert!(result.contains("{\n"), "Arrow body should expand, got: {result}");
+        assert!(
+            result.contains("app.get("),
+            "Call should start on first line, got: {result}"
+        );
+        assert!(
+            result.contains("{\n"),
+            "Arrow body should expand, got: {result}"
+        );
     }
 
     #[test]
     fn wrap_last_arg_object() {
-        let input = "setState(prevState, { loading: true, error: null, data: response, count: 42 });";
+        let input =
+            "setState(prevState, { loading: true, error: null, data: response, count: 42 });";
         let result = fmt(input);
         assert!(result.contains("\n"), "Should expand, got: {result}");
     }
@@ -1793,7 +2034,10 @@ mod tests {
         config.print_width = 60;
         let result = fmt_with(input, &config);
         // Each .method() should be on its own line
-        let dot_count = result.lines().filter(|l| l.trim_start().starts_with('.')).count();
+        let dot_count = result
+            .lines()
+            .filter(|l| l.trim_start().starts_with("."))
+            .count();
         assert!(dot_count >= 2, "Should have chain breaks, got: {result}");
     }
 
@@ -1801,30 +2045,45 @@ mod tests {
     fn wrap_preserve_multiline() {
         let input = "const o = {\n  a: 1\n};";
         let result = fmt(input);
-        assert!(result.contains("{\n"), "Multi-line should stay multi-line, got: {result}");
-        assert!(result.contains("  a: 1"), "Should preserve content, got: {result}");
+        assert!(
+            result.contains("{\n"),
+            "Multi-line should stay multi-line, got: {result}"
+        );
+        assert!(
+            result.contains("  a: 1"),
+            "Should preserve content, got: {result}"
+        );
     }
 
     #[test]
     fn wrap_nested_groups() {
         let input = "foo(bar(longArgA, longArgB, longArgC), baz(longArgD, longArgE, longArgF));";
         let result = fmt(input);
-        assert!(result.contains("\n"), "Nested long calls should wrap, got: {result}");
+        assert!(
+            result.contains("\n"),
+            "Nested long calls should wrap, got: {result}"
+        );
     }
 
     #[test]
     fn wrap_empty_groups_stay_flat() {
         let result = fmt("foo(); []; {}");
         // Empty delimiters should not get expanded
-        assert!(result.contains("foo()"), "Empty call unchanged, got: {result}");
+        assert!(
+            result.contains("foo()"),
+            "Empty call unchanged, got: {result}"
+        );
     }
 
     #[test]
     fn wrap_irreducible_long_token() {
-        let long_str = format!(r#"const x = "{}""#, "a".repeat(100));
+        let long_str = crate::vformat!(r#"const x = "{}""#, "a".repeat(100));
         let result = fmt(&long_str);
         // Can't break a string literal — should remain on one line
-        assert!(result.contains(&"a".repeat(100)), "Long string unchanged, got: {result}");
+        assert!(
+            result.contains(&"a".repeat(100)),
+            "Long string unchanged, got: {result}"
+        );
     }
 
     #[test]
@@ -1833,7 +2092,10 @@ mod tests {
         config.print_width = 40;
         let input = "const f = (a, b, c) => { return a + b + c; };";
         let result = fmt_with(input, &config);
-        assert!(result.contains("{\n"), "Arrow body should expand at width 40, got: {result}");
+        assert!(
+            result.contains("{\n"),
+            "Arrow body should expand at width 40, got: {result}"
+        );
     }
 
     #[test]
@@ -1848,7 +2110,10 @@ mod tests {
     fn wrap_single_line_stays_flat_within_width() {
         let input = "const a = [1, 2, 3];";
         let result = fmt(input);
-        assert!(!result.contains("\n["), "Short array should stay flat, got: {result}");
+        assert!(
+            !result.contains("\n["),
+            "Short array should stay flat, got: {result}"
+        );
     }
 
     #[test]
@@ -1857,6 +2122,9 @@ mod tests {
         config.print_width = 40;
         let input = "function myFunc(paramAlpha, paramBeta, paramGamma) {}";
         let result = fmt_with(input, &config);
-        assert!(result.contains("\n"), "Long params should expand, got: {result}");
+        assert!(
+            result.contains("\n"),
+            "Long params should expand, got: {result}"
+        );
     }
 }

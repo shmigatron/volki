@@ -1,10 +1,12 @@
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
 /// Extract a field value from RFC 822-style metadata (Python METADATA).
 /// Looks for `Field: value` format.
 pub fn get_rfc822_field(content: &str, field: &str) -> Option<String> {
-    let prefix = format!("{field}: ");
+    let prefix = crate::vformat!("{field}: ");
     for line in content.lines() {
-        if let Some(rest) = line.strip_prefix(&prefix) {
-            let val = rest.trim().to_string();
+        if let Some(rest) = line.strip_prefix(prefix.as_str()) {
+            let val = rest.trim().to_vstring();
             if !val.is_empty() && val != "UNKNOWN" {
                 return Some(val);
             }
@@ -40,8 +42,8 @@ pub fn parse_go_mod_requires(content: &str) -> Vec<(String, String)> {
             // Format: module/path v1.2.3
             let parts: Vec<&str> = trimmed.split_whitespace().collect();
             if parts.len() >= 2 {
-                let module = parts[0].to_string();
-                let version = parts[1].to_string();
+                let module = parts[0].to_vstring();
+                let version = parts[1].to_vstring();
                 deps.push((module, version));
             }
             continue;
@@ -52,7 +54,7 @@ pub fn parse_go_mod_requires(content: &str) -> Vec<(String, String)> {
             let rest = rest.trim();
             let parts: Vec<&str> = rest.split_whitespace().collect();
             if parts.len() >= 2 {
-                deps.push((parts[0].to_string(), parts[1].to_string()));
+                deps.push((parts[0].to_vstring(), parts[1].to_vstring()));
             }
         }
     }
@@ -75,7 +77,7 @@ pub fn parse_gemfile_lock_gems(content: &str) -> Vec<(String, String)> {
 
         if in_specs {
             // End of specs section (new section header or empty line followed by section)
-            if !line.starts_with(' ') && !trimmed.is_empty() {
+            if !line.starts_with(" ") && !trimmed.is_empty() {
                 in_specs = false;
                 continue;
             }
@@ -83,13 +85,13 @@ pub fn parse_gemfile_lock_gems(content: &str) -> Vec<(String, String)> {
             // Gem entries are indented with 4 spaces: "    gem_name (1.2.3)"
             // Sub-dependencies are indented with 6 spaces
             let indent = line.len() - line.trim_start().len();
-            if indent == 4 && trimmed.contains('(') {
+            if indent == 4 && trimmed.contains("(") {
                 if let Some((name, rest)) = trimmed.split_once(' ') {
                     let version = rest
                         .trim_start_matches('(')
                         .trim_end_matches(')')
-                        .to_string();
-                    gems.push((name.to_string(), version));
+                        .to_vstring();
+                    gems.push((name.to_vstring(), version));
                 }
             }
         }
@@ -108,7 +110,7 @@ pub fn parse_pubspec_lock_packages(content: &str) -> Vec<(String, String)> {
 
         // Package names are at 2-space indent: "  package_name:"
         if line.starts_with("  ") && !line.starts_with("    ") && trimmed.ends_with(':') {
-            current_name = Some(trimmed.trim_end_matches(':').to_string());
+            current_name = Some(trimmed.trim_end_matches(':').to_vstring());
             continue;
         }
 
@@ -116,7 +118,7 @@ pub fn parse_pubspec_lock_packages(content: &str) -> Vec<(String, String)> {
         if line.starts_with("    ") && !line.starts_with("      ") {
             if let Some(ref name) = current_name {
                 if let Some(rest) = trimmed.strip_prefix("version: ") {
-                    let version = rest.trim_matches('"').to_string();
+                    let version = rest.trim_matches('"').to_vstring();
                     packages.push((name.clone(), version));
                     current_name = None;
                 }
@@ -140,9 +142,9 @@ pub fn parse_mix_lock_deps(content: &str) -> Vec<(String, String)> {
             let name = trimmed[..colon_pos]
                 .trim()
                 .trim_start_matches('"')
-                .to_string();
+                .to_vstring();
 
-            if name.is_empty() || name.starts_with('%') {
+            if name.is_empty() || name.starts_with("%") {
                 continue;
             }
 
@@ -169,7 +171,7 @@ fn extract_mix_version(tuple_str: &str) -> Option<String> {
             if in_quotes {
                 found_strings += 1;
                 // The version is typically the first quoted string that contains a dot
-                if current.contains('.') {
+                if current.contains(".") {
                     return Some(current);
                 }
                 current.clear();
@@ -199,14 +201,23 @@ mod tests {
 
     #[test]
     fn rfc822_simple_field() {
-        assert_eq!(get_rfc822_field("License: MIT", "License"), Some("MIT".to_string()));
+        assert_eq!(
+            get_rfc822_field("License: MIT", "License"),
+            Some(crate::vstr!("MIT"))
+        );
     }
 
     #[test]
     fn rfc822_full_metadata() {
         let content = "Metadata-Version: 2.1\nName: requests\nVersion: 2.31.0\nLicense: Apache-2.0\nAuthor: Kenneth Reitz";
-        assert_eq!(get_rfc822_field(content, "License"), Some("Apache-2.0".to_string()));
-        assert_eq!(get_rfc822_field(content, "Name"), Some("requests".to_string()));
+        assert_eq!(
+            get_rfc822_field(content, "License"),
+            Some(crate::vstr!("Apache-2.0"))
+        );
+        assert_eq!(
+            get_rfc822_field(content, "Name"),
+            Some(crate::vstr!("requests"))
+        );
     }
 
     #[test]
@@ -282,8 +293,8 @@ mod tests {
         let content = "GEM\n  remote: https://rubygems.org/\n  specs:\n    rails (7.1.0)\n    rake (13.1.0)\n";
         let gems = parse_gemfile_lock_gems(content);
         assert_eq!(gems.len(), 2);
-        assert_eq!(gems[0], ("rails".to_string(), "7.1.0".to_string()));
-        assert_eq!(gems[1], ("rake".to_string(), "13.1.0".to_string()));
+        assert_eq!(gems[0], (crate::vstr!("rails"), crate::vstr!("7.1.0")));
+        assert_eq!(gems[1], (crate::vstr!("rake"), crate::vstr!("13.1.0")));
     }
 
     #[test]
@@ -315,11 +326,12 @@ mod tests {
 
     #[test]
     fn pubspec_lock_simple() {
-        let content = "packages:\n  http:\n    version: \"1.2.0\"\n  path:\n    version: \"1.9.0\"\n";
+        let content =
+            "packages:\n  http:\n    version: \"1.2.0\"\n  path:\n    version: \"1.9.0\"\n";
         let pkgs = parse_pubspec_lock_packages(content);
         assert_eq!(pkgs.len(), 2);
-        assert_eq!(pkgs[0], ("http".to_string(), "1.2.0".to_string()));
-        assert_eq!(pkgs[1], ("path".to_string(), "1.9.0".to_string()));
+        assert_eq!(pkgs[0], (crate::vstr!("http"), crate::vstr!("1.2.0")));
+        assert_eq!(pkgs[1], (crate::vstr!("path"), crate::vstr!("1.9.0")));
     }
 
     #[test]

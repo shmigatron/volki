@@ -1,0 +1,35 @@
+{
+  "name": "volki-language-support",
+  "displayName": "Volki Language Support",
+  "description": "Syntax highlighting for .volki files (Rust + RSX templating)",
+  "version": "0.1.0",
+  "publisher": "volki",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "volki",
+        "aliases": [
+          "Volki",
+          "volki"
+        ],
+        "extensions": [
+          ".volki"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "volki",
+        "scopeName": "source.volki",
+        "path": "./syntaxes/volki.tmLanguage.json"
+      }
+    ]
+  }
+}

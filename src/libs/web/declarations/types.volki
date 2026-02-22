@@ -1,0 +1,102 @@
+/// Core HTML Types
+///
+/// These types form the foundation of the RSX rendering system.
+
+/// Represents a node in the HTML tree.
+///
+/// Variants:
+///   - `Element(HtmlElement)` — A structured HTML element with tag, attributes, and children.
+///   - `Text(String)` — Text content that is HTML-escaped on render.
+///   - `Raw(String)` — Raw HTML content inserted without escaping.
+pub enum HtmlNode {
+    Element(HtmlElement),
+    Text(String),
+    Raw(String),
+}
+
+/// An HTML element with a tag name, attributes, and child nodes.
+///
+/// Created via element constructor functions (`div()`, `span()`, `p()`, etc.)
+/// and configured with builder methods:
+///
+/// ```
+/// div()
+///     .class("container")
+///     .id("main")
+///     .attr("data-page", "home")
+///     .child(h1().text("Hello"))
+///     .children(items)
+/// ```
+///
+/// Builder methods:
+///   - `.attr(name: &str, value: &str) -> Self` — Add an HTML attribute
+///   - `.class(value: &str) -> Self` — Set the class attribute
+///   - `.id(value: &str) -> Self` — Set the id attribute
+///   - `.child(node: HtmlNode) -> Self` — Add a single child node
+///   - `.children(nodes: Vec<HtmlNode>) -> Self` — Add multiple child nodes
+///   - `.text(t: &str) -> Self` — Add text content as a child
+///   - `.raw(html: &str) -> Self` — Add raw HTML as a child
+///   - `.into_node() -> HtmlNode` — Convert into an HtmlNode
+pub struct HtmlElement {
+    pub tag: &'static str,
+    pub attrs: Vec<(String, String)>,
+    pub children: Vec<HtmlNode>,
+    pub self_closing: bool,
+}
+
+/// Trait for types that can be converted into a list of child nodes.
+///
+/// Implemented for:
+///   - `HtmlNode` — wraps in a single-element vec
+///   - `Vec<HtmlNode>` — returns as-is
+///   - `HtmlElement` — converts to node, then wraps
+pub trait IntoChildren {
+    fn into_children(self) -> Vec<HtmlNode>;
+}
+
+/// Type alias for `HtmlDocument`. Used as the return type for page handler functions.
+///
+/// ```
+/// fn home(req: &Request) -> Html {
+///     HtmlDocument::new().title("Home").body_node(div().into_node())
+/// }
+/// ```
+pub type Html = HtmlDocument
+
+/// A fragment is a list of HTML nodes, used as the return type for components.
+///
+/// ```
+/// fn MyComponent() -> Fragment {
+///     vvec![
+///         h1().text("Title").into_node(),
+///         p().text("Content").into_node(),
+///     ]
+/// }
+/// ```
+pub type Fragment = Vec<HtmlNode>
+
+/// Marker type for client-side WASM functions.
+///
+/// Functions returning `Client` are compiled to WebAssembly and run in the browser.
+///
+/// ```
+/// fn on_click() -> Client {
+///     // This runs in the browser
+/// }
+/// ```
+pub type Client = ()
+
+/// Marker type for stateful component functions.
+///
+/// ```
+/// fn Counter() -> Component {
+///     // Stateful component with reactive state
+/// }
+/// ```
+pub type Component = ()
+
+/// Renders an `HtmlNode` to its HTML string representation.
+pub fn render_node(node: &HtmlNode) -> String
+
+/// Renders an `HtmlElement` to its HTML string representation.
+pub fn render_element(elem: &HtmlElement) -> String

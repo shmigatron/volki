@@ -1,5 +1,6 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
 use crate::libs::lang::shared::license::parsers::key_value::get_rfc822_field;
 use crate::libs::lang::shared::license::scan_util::finalize_scan;
@@ -16,14 +17,14 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
         || root.join("setup.py").exists();
 
     if !has_manifest {
-        return Err(LicenseError::NoManifest(
-            "No Python project file found (pyproject.toml, Pipfile, requirements.txt, or setup.py)".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(String::from(
+            "No Python project file found (pyproject.toml, Pipfile, requirements.txt, or setup.py)",
+        )));
     }
 
     let venv_dir = find_venv(root).ok_or_else(|| {
         LicenseError::NoDependencyDir(
-            "No virtual environment found (.venv/, venv/, or env/). Create one and install dependencies first.".to_string(),
+            String::from("No virtual environment found (.venv/, venv/, or env/). Create one and install dependencies first."),
         )
     })?;
 
@@ -35,7 +36,7 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     Ok(finalize_scan(project_name, packages, config))
 }
 
-fn find_venv(root: &Path) -> Option<std::path::PathBuf> {
+fn find_venv(root: &Path) -> Option<crate::core::volkiwithstds::path::PathBuf> {
     let candidates = [".venv", "venv", "env"];
     for name in &candidates {
         let path = root.join(name);
@@ -54,7 +55,7 @@ fn scan_site_packages(venv_dir: &Path, packages: &mut Vec<PackageLicense>) {
 
     for entry in entries.flatten() {
         let name = entry.file_name();
-        let name_str = name.to_string_lossy();
+        let name_str = name;
         if name_str.starts_with("python") {
             let site_packages = entry.path().join("site-packages");
             if site_packages.is_dir() {
@@ -71,7 +72,7 @@ fn scan_dist_infos(site_packages: &Path, packages: &mut Vec<PackageLicense>) {
 
     for entry in entries.flatten() {
         let name = entry.file_name();
-        let name_str = name.to_string_lossy();
+        let name_str = name;
 
         if name_str.ends_with(".dist-info") && entry.path().is_dir() {
             if let Some(pkg) = read_dist_info(&entry.path(), &name_str) {
@@ -85,12 +86,18 @@ fn read_dist_info(dir: &Path, dir_name: &str) -> Option<PackageLicense> {
     let base = dir_name.strip_suffix(".dist-info")?;
     let (name, version) = base.rsplit_once('-')?;
 
-    let skip_packages = ["pip", "setuptools", "wheel", "pkg_resources", "_distutils_hack"];
+    let skip_packages = [
+        "pip",
+        "setuptools",
+        "wheel",
+        "pkg_resources",
+        "_distutils_hack",
+    ];
     if skip_packages.contains(&name) {
         return None;
     }
 
-    let name = name.replace('_', "-");
+    let name = String::from(name).replace("_", "-");
 
     let metadata_path = dir.join("METADATA");
     let (license, source) = if let Ok(content) = fs::read_to_string(&metadata_path) {
@@ -99,17 +106,17 @@ fn read_dist_info(dir: &Path, dir_name: &str) -> Option<PackageLicense> {
         } else if let Some(classifier) = find_license_classifier(&content) {
             (classifier, LicenseSource::MetadataFile)
         } else {
-            ("UNKNOWN".to_string(), LicenseSource::NotFound)
+            (String::from("UNKNOWN"), LicenseSource::NotFound)
         }
     } else {
-        ("UNKNOWN".to_string(), LicenseSource::NotFound)
+        (String::from("UNKNOWN"), LicenseSource::NotFound)
     };
 
     let category = LicenseCategory::from_license_str(&license);
 
     Some(PackageLicense {
         name,
-        version: version.to_string(),
+        version: String::from(version),
         license,
         category,
         source,
@@ -119,7 +126,7 @@ fn read_dist_info(dir: &Path, dir_name: &str) -> Option<PackageLicense> {
 fn find_license_classifier(metadata: &str) -> Option<String> {
     for line in metadata.lines() {
         if let Some(rest) = line.strip_prefix("Classifier: License :: OSI Approved :: ") {
-            let license = rest.trim().trim_end_matches(" License").to_string();
+            let license = String::from(rest.trim().trim_end_matches(" License"));
             if !license.is_empty() {
                 return Some(license);
             }
@@ -138,7 +145,7 @@ fn read_project_name(root: &Path) -> String {
                 in_project = true;
                 continue;
             }
-            if trimmed.starts_with('[') {
+            if trimmed.starts_with("[") {
                 in_project = false;
                 continue;
             }
@@ -148,12 +155,12 @@ fn read_project_name(root: &Path) -> String {
                     if let Some(rest) = rest.strip_prefix('=') {
                         let val = rest.trim().trim_matches('"').trim_matches('\'');
                         if !val.is_empty() {
-                            return val.to_string();
+                            return String::from(val);
                         }
                     }
                 }
             }
         }
     }
-    "unnamed".to_string()
+    String::from("unnamed")
 }

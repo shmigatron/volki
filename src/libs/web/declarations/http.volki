@@ -1,0 +1,143 @@
+/// HTTP Types
+///
+/// Request, response, headers, methods, and status codes for the web server.
+
+/// HTTP request methods.
+pub enum Method {
+    Get,
+    Post,
+    Put,
+    Delete,
+    Patch,
+    Head,
+    Options,
+}
+
+pub fn Method::from_bytes(bytes: &[u8]) -> Option<Self>
+pub fn Method::as_str(&self) -> &'static str
+
+/// HTTP status code.
+///
+/// Common codes are available as associated constants:
+/// ```
+/// let ok = StatusCode::OK;            // 200
+/// let not_found = StatusCode::NOT_FOUND;  // 404
+/// ```
+///
+/// Constants:
+///   - `OK` (200), `CREATED` (201), `NO_CONTENT` (204)
+///   - `MOVED_PERMANENTLY` (301), `FOUND` (302), `NOT_MODIFIED` (304)
+///   - `BAD_REQUEST` (400), `UNAUTHORIZED` (401), `FORBIDDEN` (403),
+///     `NOT_FOUND` (404), `METHOD_NOT_ALLOWED` (405)
+///   - `INTERNAL_SERVER_ERROR` (500), `NOT_IMPLEMENTED` (501),
+///     `BAD_GATEWAY` (502), `SERVICE_UNAVAILABLE` (503)
+pub struct StatusCode(pub u16)
+
+pub const StatusCode::OK: StatusCode
+pub const StatusCode::CREATED: StatusCode
+pub const StatusCode::NO_CONTENT: StatusCode
+pub const StatusCode::MOVED_PERMANENTLY: StatusCode
+pub const StatusCode::FOUND: StatusCode
+pub const StatusCode::NOT_MODIFIED: StatusCode
+pub const StatusCode::BAD_REQUEST: StatusCode
+pub const StatusCode::UNAUTHORIZED: StatusCode
+pub const StatusCode::FORBIDDEN: StatusCode
+pub const StatusCode::NOT_FOUND: StatusCode
+pub const StatusCode::METHOD_NOT_ALLOWED: StatusCode
+pub const StatusCode::INTERNAL_SERVER_ERROR: StatusCode
+pub const StatusCode::NOT_IMPLEMENTED: StatusCode
+pub const StatusCode::BAD_GATEWAY: StatusCode
+pub const StatusCode::SERVICE_UNAVAILABLE: StatusCode
+
+pub fn StatusCode::code(&self) -> u16
+pub fn StatusCode::reason_phrase(&self) -> &'static str
+
+/// HTTP header map.
+///
+/// ```
+/// let mut headers = Headers::new();
+/// headers.set("Content-Type", "text/html");
+/// headers.append("Set-Cookie", "session=abc");
+/// ```
+pub struct Headers {
+    entries: Vec<(String, String)>,
+}
+
+pub fn Headers::new() -> Self
+pub fn Headers::get(&self, name: &str) -> Option<&str>
+pub fn Headers::set(&mut self, name: &str, value: &str)
+pub fn Headers::append(&mut self, name: &str, value: &str)
+pub fn Headers::iter(&self) -> impl Iterator<Item = (&str, &str)>
+pub fn Headers::content_length(&self) -> Option<usize>
+pub fn Headers::connection_keep_alive(&self) -> bool
+pub fn Headers::write_to(&self, buf: &mut Vec<u8>)
+
+/// An incoming HTTP request.
+///
+/// Provided to page handlers and API handlers. Contains the method, path,
+/// headers, body, and parsed route parameters.
+///
+/// ```
+/// fn handler(req: &Request) -> Response {
+///     let id = req.param("id").unwrap_or("unknown");
+///     let content_type = req.content_type();
+///     Response::ok().text(id)
+/// }
+/// ```
+pub struct Request {
+    pub method: Method,
+    pub path: String,
+    pub route_path: String,
+    pub query_string: String,
+    pub headers: Headers,
+    pub body: Vec<u8>,
+    pub params: HashMap<String, String>,
+}
+
+pub fn Request::new(method: Method, path: String, headers: Headers, body: Vec<u8>) -> Self
+pub fn Request::param(&self, name: &str) -> Option<&str>
+pub fn Request::query_params(&self) -> Vec<(&str, &str)>
+pub fn Request::content_type(&self) -> Option<&str>
+
+/// An HTTP response to send back to the client.
+///
+/// Construct with factory methods and configure with builder methods:
+/// ```
+/// Response::ok().html("<h1>Hello</h1>")
+/// Response::not_found().text("Page not found")
+/// Response::new(StatusCode::CREATED).json("{\"id\": 1}")
+/// ```
+///
+/// Factory methods:
+///   - `Response::new(status: StatusCode) -> Self` — Create with a status code
+///   - `Response::ok() -> Self` — 200 OK
+///   - `Response::not_found() -> Self` — 404 Not Found
+///   - `Response::internal_error() -> Self` — 500 Internal Server Error
+///
+/// Builder methods:
+///   - `.header(name: &str, value: &str) -> Self` — Add a response header
+///   - `.html(html: &str) -> Self` — Set body to HTML with Content-Type text/html
+///   - `.json(json: &str) -> Self` — Set body to JSON with Content-Type application/json
+///   - `.text(text: &str) -> Self` — Set body to plain text
+///   - `.document(doc: &HtmlDocument) -> Self` — Render an HtmlDocument as the body
+///   - `.redirect(location: &str) -> Self` — 302 redirect to a URL
+///   - `.body_bytes(bytes: &[u8]) -> Self` — Set raw body bytes
+///   - `.serialize() -> Vec<u8>` — Serialize the full HTTP response
+pub struct Response {
+    pub status: StatusCode,
+    pub headers: Headers,
+    pub body: Vec<u8>,
+}
+
+pub fn Response::new(status: StatusCode) -> Self
+pub fn Response::ok() -> Self
+pub fn Response::not_found() -> Self
+pub fn Response::internal_error() -> Self
+pub fn Response::header(mut self, name: &str, value: &str) -> Self
+pub fn Response::html(mut self, html: &str) -> Self
+pub fn Response::json(mut self, json: &str) -> Self
+pub fn Response::text(mut self, text: &str) -> Self
+pub fn Response::document(self, doc: &HtmlDocument) -> Self
+pub fn Response::redirect(mut self, location: &str) -> Self
+pub fn Response::body_bytes(mut self, bytes: &[u8]) -> Self
+pub fn Response::serialize(&self) -> Vec<u8>

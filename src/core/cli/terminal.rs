@@ -1,3 +1,9 @@
+#[cfg(test)]
+use core::sync::atomic::{AtomicI8, Ordering};
+
+#[cfg(test)]
+static STDIN_TTY_OVERRIDE: AtomicI8 = AtomicI8::new(-1);
+
 #[cfg(unix)]
 pub fn is_tty() -> bool {
     unsafe { libc_isatty(2) != 0 }
@@ -9,29 +15,65 @@ pub fn is_tty() -> bool {
 }
 
 #[cfg(unix)]
+pub fn is_stdin_tty() -> bool {
+    #[cfg(test)]
+    {
+        match STDIN_TTY_OVERRIDE.load(Ordering::Relaxed) {
+            0 => return false,
+            1 => return true,
+            _ => {}
+        }
+    }
+    unsafe { libc_isatty(0) != 0 }
+}
+
+#[cfg(not(unix))]
+pub fn is_stdin_tty() -> bool {
+    #[cfg(test)]
+    {
+        match STDIN_TTY_OVERRIDE.load(Ordering::Relaxed) {
+            0 => return false,
+            1 => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
+#[cfg(test)]
+pub fn set_stdin_tty_override(value: Option<bool>) {
+    let encoded = match value {
+        Some(false) => 0,
+        Some(true) => 1,
+        None => -1,
+    };
+    STDIN_TTY_OVERRIDE.store(encoded, Ordering::Relaxed);
+}
+
+#[cfg(unix)]
 unsafe extern "C" {
     #[link_name = "isatty"]
     fn libc_isatty(fd: i32) -> i32;
 }
 
 pub fn is_ci() -> bool {
-    std::env::var_os("CI").is_some()
-        || std::env::var_os("GITHUB_ACTIONS").is_some()
-        || std::env::var_os("GITLAB_CI").is_some()
-        || std::env::var_os("CIRCLECI").is_some()
-        || std::env::var_os("TRAVIS").is_some()
-        || std::env::var_os("JENKINS_URL").is_some()
-        || std::env::var_os("BUILDKITE").is_some()
-        || std::env::var_os("TF_BUILD").is_some()
+    crate::core::volkiwithstds::env::var("CI").is_some()
+        || crate::core::volkiwithstds::env::var("GITHUB_ACTIONS").is_some()
+        || crate::core::volkiwithstds::env::var("GITLAB_CI").is_some()
+        || crate::core::volkiwithstds::env::var("CIRCLECI").is_some()
+        || crate::core::volkiwithstds::env::var("TRAVIS").is_some()
+        || crate::core::volkiwithstds::env::var("JENKINS_URL").is_some()
+        || crate::core::volkiwithstds::env::var("BUILDKITE").is_some()
+        || crate::core::volkiwithstds::env::var("TF_BUILD").is_some()
 }
 
 pub fn no_color() -> bool {
-    std::env::var_os("NO_COLOR").is_some()
+    crate::core::volkiwithstds::env::var("NO_COLOR").is_some()
 }
 
 #[cfg(unix)]
 pub fn terminal_width() -> usize {
-    use std::mem::MaybeUninit;
+    use core::mem::MaybeUninit;
 
     #[repr(C)]
     struct Winsize {
@@ -94,5 +136,10 @@ mod tests {
     #[test]
     fn is_tty_returns_bool() {
         let _ = is_tty();
+    }
+
+    #[test]
+    fn is_stdin_tty_returns_bool() {
+        let _ = is_stdin_tty();
     }
 }

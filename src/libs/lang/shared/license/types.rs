@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-use std::fmt;
-use std::io;
+use crate::core::volkiwithstds::collections::HashMap;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fmt;
+use crate::core::volkiwithstds::io;
 
 #[derive(Debug)]
 pub struct ScanConfig {
@@ -150,7 +151,7 @@ pub struct ScanResult {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum LicenseError {
-    Io(io::Error),
+    Io(io::IoError),
     NoManifest(String),
     NoDependencyDir(String),
     ParseError(String),
@@ -167,8 +168,8 @@ impl fmt::Display for LicenseError {
     }
 }
 
-impl From<io::Error> for LicenseError {
-    fn from(e: io::Error) -> Self {
+impl From<io::IoError> for LicenseError {
+    fn from(e: io::IoError) -> Self {
         LicenseError::Io(e)
     }
 }
@@ -265,142 +266,220 @@ mod tests {
 
     #[test]
     fn category_mit() {
-        assert_eq!(LicenseCategory::from_license_str("MIT"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("MIT"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_apache() {
-        assert_eq!(LicenseCategory::from_license_str("Apache-2.0"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("Apache-2.0"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_bsd_variants() {
-        assert_eq!(LicenseCategory::from_license_str("BSD-2-Clause"), LicenseCategory::Permissive);
-        assert_eq!(LicenseCategory::from_license_str("BSD-3-Clause"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("BSD-2-Clause"),
+            LicenseCategory::Permissive
+        );
+        assert_eq!(
+            LicenseCategory::from_license_str("BSD-3-Clause"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_isc() {
-        assert_eq!(LicenseCategory::from_license_str("ISC"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("ISC"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_unlicense() {
-        assert_eq!(LicenseCategory::from_license_str("Unlicense"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("Unlicense"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_cc0() {
-        assert_eq!(LicenseCategory::from_license_str("CC0-1.0"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("CC0-1.0"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_wtfpl() {
-        assert_eq!(LicenseCategory::from_license_str("WTFPL"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("WTFPL"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_0bsd() {
-        assert_eq!(LicenseCategory::from_license_str("0BSD"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("0BSD"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_zlib() {
-        assert_eq!(LicenseCategory::from_license_str("Zlib"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("Zlib"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_lgpl() {
-        assert_eq!(LicenseCategory::from_license_str("LGPL-2.1"), LicenseCategory::WeakCopyleft);
-        assert_eq!(LicenseCategory::from_license_str("LGPL-3.0"), LicenseCategory::WeakCopyleft);
+        assert_eq!(
+            LicenseCategory::from_license_str("LGPL-2.1"),
+            LicenseCategory::WeakCopyleft
+        );
+        assert_eq!(
+            LicenseCategory::from_license_str("LGPL-3.0"),
+            LicenseCategory::WeakCopyleft
+        );
     }
 
     #[test]
     fn category_mpl() {
-        assert_eq!(LicenseCategory::from_license_str("MPL-2.0"), LicenseCategory::WeakCopyleft);
+        assert_eq!(
+            LicenseCategory::from_license_str("MPL-2.0"),
+            LicenseCategory::WeakCopyleft
+        );
     }
 
     #[test]
     fn category_gpl() {
-        assert_eq!(LicenseCategory::from_license_str("GPL-2.0"), LicenseCategory::StrongCopyleft);
-        assert_eq!(LicenseCategory::from_license_str("GPL-3.0"), LicenseCategory::StrongCopyleft);
+        assert_eq!(
+            LicenseCategory::from_license_str("GPL-2.0"),
+            LicenseCategory::StrongCopyleft
+        );
+        assert_eq!(
+            LicenseCategory::from_license_str("GPL-3.0"),
+            LicenseCategory::StrongCopyleft
+        );
     }
 
     #[test]
     fn category_agpl() {
-        assert_eq!(LicenseCategory::from_license_str("AGPL-3.0"), LicenseCategory::StrongCopyleft);
+        assert_eq!(
+            LicenseCategory::from_license_str("AGPL-3.0"),
+            LicenseCategory::StrongCopyleft
+        );
     }
 
     #[test]
     fn category_unknown_license() {
-        assert_eq!(LicenseCategory::from_license_str("CustomLicense"), LicenseCategory::Unknown);
+        assert_eq!(
+            LicenseCategory::from_license_str("CustomLicense"),
+            LicenseCategory::Unknown
+        );
     }
 
     #[test]
     fn category_empty() {
-        assert_eq!(LicenseCategory::from_license_str(""), LicenseCategory::Unknown);
+        assert_eq!(
+            LicenseCategory::from_license_str(""),
+            LicenseCategory::Unknown
+        );
     }
 
     // --- Compound SPDX expressions ---
 
     #[test]
     fn category_or_both_permissive() {
-        assert_eq!(LicenseCategory::from_license_str("MIT OR Apache-2.0"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("MIT OR Apache-2.0"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_or_mixed_permissive_copyleft() {
-        assert_eq!(LicenseCategory::from_license_str("MIT OR GPL-3.0"), LicenseCategory::StrongCopyleft);
+        assert_eq!(
+            LicenseCategory::from_license_str("MIT OR GPL-3.0"),
+            LicenseCategory::StrongCopyleft
+        );
     }
 
     #[test]
     fn category_and_mixed() {
-        assert_eq!(LicenseCategory::from_license_str("MIT AND GPL-2.0"), LicenseCategory::StrongCopyleft);
+        assert_eq!(
+            LicenseCategory::from_license_str("MIT AND GPL-2.0"),
+            LicenseCategory::StrongCopyleft
+        );
     }
 
     #[test]
     fn category_or_with_parens() {
-        assert_eq!(LicenseCategory::from_license_str("(MIT OR Apache-2.0)"), LicenseCategory::Permissive);
+        assert_eq!(
+            LicenseCategory::from_license_str("(MIT OR Apache-2.0)"),
+            LicenseCategory::Permissive
+        );
     }
 
     #[test]
     fn category_or_weak_copyleft_and_permissive() {
-        assert_eq!(LicenseCategory::from_license_str("LGPL-2.1 OR MIT"), LicenseCategory::WeakCopyleft);
+        assert_eq!(
+            LicenseCategory::from_license_str("LGPL-2.1 OR MIT"),
+            LicenseCategory::WeakCopyleft
+        );
     }
 
     // --- Display impls ---
 
     #[test]
     fn category_display() {
-        assert_eq!(format!("{}", LicenseCategory::Permissive), "Permissive");
-        assert_eq!(format!("{}", LicenseCategory::WeakCopyleft), "Weak Copyleft");
-        assert_eq!(format!("{}", LicenseCategory::StrongCopyleft), "Strong Copyleft");
-        assert_eq!(format!("{}", LicenseCategory::Unknown), "Unknown");
+        assert_eq!(
+            crate::vformat!("{}", LicenseCategory::Permissive),
+            "Permissive"
+        );
+        assert_eq!(
+            crate::vformat!("{}", LicenseCategory::WeakCopyleft),
+            "Weak Copyleft"
+        );
+        assert_eq!(
+            crate::vformat!("{}", LicenseCategory::StrongCopyleft),
+            "Strong Copyleft"
+        );
+        assert_eq!(crate::vformat!("{}", LicenseCategory::Unknown), "Unknown");
     }
 
     // --- LicenseError ---
 
     #[test]
     fn license_error_display_io() {
-        let err = LicenseError::Io(io::Error::new(io::ErrorKind::NotFound, "gone"));
-        assert!(format!("{err}").contains("IO error"));
+        let err = LicenseError::Io(io::IoError::new(io::IoErrorKind::NotFound, "gone"));
+        assert!(crate::vformat!("{err}").contains("IO error"));
     }
 
     #[test]
     fn license_error_display_no_manifest() {
-        let err = LicenseError::NoManifest("no pkg".to_string());
-        assert_eq!(format!("{err}"), "no pkg");
+        let err = LicenseError::NoManifest(crate::vstr!("no pkg"));
+        assert_eq!(crate::vformat!("{err}"), "no pkg");
     }
 
     #[test]
     fn license_error_display_parse() {
-        let err = LicenseError::ParseError("bad".to_string());
-        assert!(format!("{err}").contains("Parse error"));
+        let err = LicenseError::ParseError(crate::vstr!("bad"));
+        assert!(crate::vformat!("{err}").contains("Parse error"));
     }
 
     #[test]
     fn license_error_from_io() {
-        let io_err = io::Error::new(io::ErrorKind::PermissionDenied, "denied");
+        let io_err = io::IoError::new(io::IoErrorKind::PermissionDenied, "denied");
         let err: LicenseError = io_err.into();
         assert!(matches!(err, LicenseError::Io(_)));
     }

@@ -1,8 +1,9 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
+use crate::core::volkiwithstds::collections::json::extract_top_level;
 use crate::libs::lang::shared::license::heuristic::detect_license_from_file;
-use crate::libs::lang::shared::license::parsers::json::extract_top_level;
 use crate::libs::lang::shared::license::scan_util::finalize_scan;
 use crate::libs::lang::shared::license::types::{
     LicenseCategory, LicenseError, LicenseSource, PackageLicense, ScanConfig, ScanResult,
@@ -12,16 +13,16 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let root = Path::new(&config.path);
 
     if !root.join("Package.swift").exists() {
-        return Err(LicenseError::NoManifest(
-            "No Package.swift found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(crate::vstr!(
+            "No Package.swift found in project directory"
+        )));
     }
 
     let resolved_path = root.join("Package.resolved");
     if !resolved_path.exists() {
-        return Err(LicenseError::NoDependencyDir(
-            "No Package.resolved found (run swift package resolve first)".to_string(),
-        ));
+        return Err(LicenseError::NoDependencyDir(crate::vstr!(
+            "No Package.resolved found (run swift package resolve first)"
+        )));
     }
 
     let project_name = read_project_name(root);
@@ -52,21 +53,30 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
 fn parse_package_resolved(content: &str) -> Vec<(String, String)> {
     let map = extract_top_level(content);
     let mut deps = Vec::new();
+    let pins_key = String::from("pins");
+    let identity_key = String::from("identity");
+    let state_key = String::from("state");
+    let version_key = String::from("version");
+    let object_key = String::from("object");
+    let package_key = String::from("package");
 
     // Package.resolved v2 format: { "pins": [ { "identity": "...", "state": { "version": "..." } } ] }
-    if let Some(pins) = map.get("pins").and_then(|v| v.as_array()) {
+    if let Some(pins) = map.get(&pins_key).and_then(|v| v.as_array()) {
         for pin in pins {
             if let Some(obj) = pin.as_object() {
-                let identity = obj.get("identity").and_then(|v| v.as_str()).unwrap_or("");
+                let identity = obj
+                    .get(&identity_key)
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 let version = obj
-                    .get("state")
+                    .get(&state_key)
                     .and_then(|v| v.as_object())
-                    .and_then(|s| s.get("version"))
+                    .and_then(|s| s.get(&version_key))
                     .and_then(|v| v.as_str())
                     .unwrap_or("0.0.0");
 
                 if !identity.is_empty() {
-                    deps.push((identity.to_string(), version.to_string()));
+                    deps.push((String::from(identity), String::from(version)));
                 }
             }
         }
@@ -74,20 +84,20 @@ fn parse_package_resolved(content: &str) -> Vec<(String, String)> {
     }
 
     // Package.resolved v1 format: { "object": { "pins": [...] } }
-    if let Some(object) = map.get("object").and_then(|v| v.as_object()) {
-        if let Some(pins) = object.get("pins").and_then(|v| v.as_array()) {
+    if let Some(object) = map.get(&object_key).and_then(|v| v.as_object()) {
+        if let Some(pins) = object.get(&pins_key).and_then(|v| v.as_array()) {
             for pin in pins {
                 if let Some(obj) = pin.as_object() {
-                    let package = obj.get("package").and_then(|v| v.as_str()).unwrap_or("");
+                    let package = obj.get(&package_key).and_then(|v| v.as_str()).unwrap_or("");
                     let version = obj
-                        .get("state")
+                        .get(&state_key)
                         .and_then(|v| v.as_object())
-                        .and_then(|s| s.get("version"))
+                        .and_then(|s| s.get(&version_key))
                         .and_then(|v| v.as_str())
                         .unwrap_or("0.0.0");
 
                     if !package.is_empty() {
-                        deps.push((package.to_string(), version.to_string()));
+                        deps.push((String::from(package), String::from(version)));
                     }
                 }
             }
@@ -106,7 +116,7 @@ fn find_swift_package_license(name: &str, checkouts: &Path) -> (String, LicenseS
             }
         }
     }
-    ("UNKNOWN".to_string(), LicenseSource::NotFound)
+    (crate::vstr!("UNKNOWN"), LicenseSource::NotFound)
 }
 
 fn read_project_name(root: &Path) -> String {
@@ -117,11 +127,11 @@ fn read_project_name(root: &Path) -> String {
             if trimmed.contains("name:") {
                 if let Some(start) = trimmed.find('"') {
                     if let Some(end) = trimmed[start + 1..].find('"') {
-                        return trimmed[start + 1..start + 1 + end].to_string();
+                        return String::from(&trimmed[start + 1..start + 1 + end]);
                     }
                 }
             }
         }
     }
-    "unnamed".to_string()
+    crate::vstr!("unnamed")
 }

@@ -1,33 +1,36 @@
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::veprintln;
+
 use super::style;
 
 pub fn print_banner() {
-    eprintln!("{}", style::banner());
+    veprintln!("{}", style::banner());
 }
 
 pub fn print_header(cmd_name: &str) {
-    eprintln!("{} volki {}", style::WOLF, style::bold(cmd_name));
+    veprintln!("{} volki {}", style::WOLF, style::bold(cmd_name));
 }
 
 pub fn print_hint(msg: &str) {
-    eprintln!("{}", style::hint(msg));
+    veprintln!("{}", style::hint(msg));
 }
 
 pub fn print_section(title: &str) {
-    eprintln!("  {}", style::bold(title));
+    veprintln!("  {}", style::bold(title));
 }
 
 pub fn print_item(symbol: &str, msg: &str) {
-    eprintln!("  {} {}", symbol, msg);
+    veprintln!("  {} {}", symbol, msg);
 }
 
 pub fn print_item_timed(symbol: &str, msg: &str, ms: u128) {
     let dur = style::dim(&style::format_duration(ms));
-    eprintln!("  {} {}  {}", symbol, msg, dur);
+    veprintln!("  {} {}  {}", symbol, msg, dur);
 }
 
 pub fn print_step(i: usize, total: usize, symbol: &str, msg: &str) {
-    let counter = style::dim(&format!("[{i}/{total}]"));
-    eprintln!("  {} {} {}", counter, symbol, msg);
+    let counter = style::dim(&crate::vformat!("[{i}/{total}]"));
+    veprintln!("  {} {} {}", counter, symbol, msg);
 }
 
 pub fn print_summary_box(lines: &[&str]) {
@@ -35,34 +38,30 @@ pub fn print_summary_box(lines: &[&str]) {
         return;
     }
 
-    let max_visible_width = lines
-        .iter()
-        .map(|l| strip_ansi(l).len())
-        .max()
-        .unwrap_or(0);
+    let max_visible_width = lines.iter().map(|l| strip_ansi(l).len()).max().unwrap_or(0);
 
     let inner_width = max_visible_width + 2; // 1 space padding on each side
 
-    let top = format!(
+    let top = crate::vformat!(
         "  \u{250C}{}\u{2510}",
-        "\u{2500}".repeat(inner_width)
+        String::from("\u{2500}").repeat(inner_width)
     );
-    let bottom = format!(
+    let bottom = crate::vformat!(
         "  \u{2514}{}\u{2518}",
-        "\u{2500}".repeat(inner_width)
+        String::from("\u{2500}").repeat(inner_width)
     );
 
-    eprintln!("{top}");
+    veprintln!("{top}");
     for line in lines {
         let visible_len = strip_ansi(line).len();
         let pad = max_visible_width - visible_len;
-        eprintln!(
+        veprintln!(
             "  \u{2502} {}{} \u{2502}",
             line,
-            " ".repeat(pad),
+            String::from(" ").repeat(pad),
         );
     }
-    eprintln!("{bottom}");
+    veprintln!("{bottom}");
 }
 
 /// `aligns`: 'l' (left) or 'r' (right) per column, defaults to 'l'.
@@ -83,12 +82,15 @@ pub fn print_table(headers: &[&str], rows: &[Vec<String>], aligns: &[char]) {
 
     let mut header_parts = Vec::new();
     for (i, h) in headers.iter().enumerate() {
-        header_parts.push(format!("{:<width$}", h, width = widths[i]));
+        header_parts.push(crate::vformat!("{:<width$}", h, width = widths[i]));
     }
-    eprintln!("  {}", style::bold(&header_parts.join("  ")));
+    veprintln!("  {}", style::bold(&header_parts.join("  ")));
 
-    let divider_parts: Vec<String> = widths.iter().map(|w| "-".repeat(*w)).collect();
-    eprintln!("  {}", style::dim(&divider_parts.join("  ")));
+    let divider_parts: Vec<String> = widths
+        .iter()
+        .map(|w| String::from("-").repeat(*w))
+        .collect();
+    veprintln!("  {}", style::dim(&divider_parts.join("  ")));
 
     for row in rows {
         let mut parts = Vec::new();
@@ -98,13 +100,13 @@ pub fn print_table(headers: &[&str], rows: &[Vec<String>], aligns: &[char]) {
                 let visible_len = strip_ansi(cell).len();
                 let pad = widths[i].saturating_sub(visible_len);
                 if align == 'r' {
-                    parts.push(format!("{}{}", " ".repeat(pad), cell));
+                    parts.push(crate::vformat!("{}{}", String::from(" ").repeat(pad), cell));
                 } else {
-                    parts.push(format!("{}{}", cell, " ".repeat(pad)));
+                    parts.push(crate::vformat!("{}{}", cell, String::from(" ").repeat(pad)));
                 }
             }
         }
-        eprintln!("  {}", parts.join("  "));
+        veprintln!("  {}", parts.join("  "));
     }
 }
 
@@ -113,21 +115,24 @@ pub fn print_tree(items: &[(usize, &str)]) {
     let total = items.len();
     for (idx, (depth, text)) in items.iter().enumerate() {
         let is_last = idx + 1 >= total
-            || items.get(idx + 1).map(|(d, _)| *d <= *depth).unwrap_or(true);
+            || items
+                .get(idx + 1)
+                .map(|(d, _)| *d <= *depth)
+                .unwrap_or(true);
 
         let indent = if *depth == 0 {
             String::new()
         } else {
-            let prefix_spaces = "  ".repeat(depth - 1);
+            let prefix_spaces = String::from("  ").repeat(depth - 1);
             let connector = if is_last {
                 style::TREE_LAST
             } else {
                 style::TREE_BRANCH
             };
-            format!("{prefix_spaces}{connector} ")
+            crate::vformat!("{prefix_spaces}{connector} ")
         };
 
-        eprintln!("  {indent}{text}");
+        veprintln!("  {indent}{text}");
     }
 }
 
@@ -138,16 +143,24 @@ pub fn print_code_frame(
     pointer_col: Option<usize>,
     pointer_len: Option<usize>,
 ) {
-    let gutter_width = format!("{}", start_line + lines.len()).len();
+    let gutter_width = crate::vformat!("{}", start_line + lines.len()).len();
 
     for (i, line) in lines.iter().enumerate() {
         let line_num = start_line + i;
         let is_highlight = highlight_line == Some(line_num);
 
         let gutter = if is_highlight {
-            style::red(&format!("{:>width$}", line_num, width = gutter_width))
+            style::red(&crate::vformat!(
+                "{:>width$}",
+                line_num,
+                width = gutter_width
+            ))
         } else {
-            style::dim(&format!("{:>width$}", line_num, width = gutter_width))
+            style::dim(&crate::vformat!(
+                "{:>width$}",
+                line_num,
+                width = gutter_width
+            ))
         };
 
         let separator = if is_highlight {
@@ -156,17 +169,17 @@ pub fn print_code_frame(
             style::dim("\u{2502}")
         };
 
-        eprintln!("    {gutter} {separator} {line}");
+        veprintln!("    {gutter} {separator} {line}");
 
         if is_highlight {
             if let (Some(col), Some(len)) = (pointer_col, pointer_len) {
-                let spaces = " ".repeat(col);
-                let carets = "^".repeat(len);
-                let pointer_gutter = " ".repeat(gutter_width);
-                eprintln!(
+                let spaces = String::from(" ").repeat(col);
+                let carets = String::from("^").repeat(len);
+                let pointer_gutter = String::from(" ").repeat(gutter_width);
+                veprintln!(
                     "    {pointer_gutter} {} {}",
                     style::red("\u{2502}"),
-                    style::red(&format!("{spaces}{carets}"))
+                    style::red(&crate::vformat!("{spaces}{carets}"))
                 );
             }
         }
@@ -207,10 +220,7 @@ mod tests {
 
     #[test]
     fn strip_ansi_multiple_codes() {
-        assert_eq!(
-            strip_ansi("\x1b[1m\x1b[35mtext\x1b[0m"),
-            "text"
-        );
+        assert_eq!(strip_ansi("\x1b[1m\x1b[35mtext\x1b[0m"), "text");
     }
 
     #[test]

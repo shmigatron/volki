@@ -1,4 +1,6 @@
-use std::path::Path;
+use crate::core::volkiwithstds::collections::Vec;
+use crate::core::volkiwithstds::path::Path;
+use crate::veprintln;
 
 use super::protocol::{PluginRequest, PluginResponse};
 use super::resolver;
@@ -18,7 +20,7 @@ impl PluginRegistry {
                     plugins.push((spec.clone(), resolved));
                 }
                 Err(e) => {
-                    eprintln!("warning: plugin '{}': {}", spec.name, e);
+                    veprintln!("warning: plugin '{}': {}", spec.name, e);
                 }
             }
         }

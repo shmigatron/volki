@@ -1,5 +1,7 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
 use crate::libs::lang::shared::license::heuristic::detect_license_from_file;
 use crate::libs::lang::shared::license::parsers::key_value::parse_pubspec_lock_packages;
@@ -14,14 +16,14 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let pubspec_lock = root.join("pubspec.lock");
 
     if !pubspec_yaml.exists() {
-        return Err(LicenseError::NoManifest(
-            "No pubspec.yaml found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(crate::vstr!(
+            "No pubspec.yaml found in project directory"
+        )));
     }
     if !pubspec_lock.exists() {
-        return Err(LicenseError::NoDependencyDir(
-            "No pubspec.lock found (run dart pub get first)".to_string(),
-        ));
+        return Err(LicenseError::NoDependencyDir(crate::vstr!(
+            "No pubspec.lock found (run dart pub get first)"
+        )));
     }
 
     let project_name = read_project_name(&pubspec_yaml);
@@ -53,20 +55,20 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
 fn find_dart_package_license(
     name: &str,
     version: &str,
-    pub_cache: &Option<std::path::PathBuf>,
+    pub_cache: &Option<crate::core::volkiwithstds::path::PathBuf>,
 ) -> (String, LicenseSource) {
     let Some(cache) = pub_cache else {
-        return ("UNKNOWN".to_string(), LicenseSource::NotFound);
+        return (crate::vstr!("UNKNOWN"), LicenseSource::NotFound);
     };
 
-    let pkg_dir = cache.join(format!("{name}-{version}"));
+    let pkg_dir = cache.join(&crate::vformat!("{name}-{version}"));
     if pkg_dir.is_dir() {
         if let Some(l) = detect_license_from_file(&pkg_dir) {
             return (l, LicenseSource::LicenseFile);
         }
     }
 
-    ("UNKNOWN".to_string(), LicenseSource::NotFound)
+    (crate::vstr!("UNKNOWN"), LicenseSource::NotFound)
 }
 
 fn read_project_name(pubspec_yaml: &Path) -> String {
@@ -76,10 +78,10 @@ fn read_project_name(pubspec_yaml: &Path) -> String {
             if let Some(rest) = trimmed.strip_prefix("name:") {
                 let val = rest.trim().trim_matches('"').trim_matches('\'');
                 if !val.is_empty() {
-                    return val.to_string();
+                    return val.to_vstring();
                 }
             }
         }
     }
-    "unnamed".to_string()
+    crate::vstr!("unnamed")
 }

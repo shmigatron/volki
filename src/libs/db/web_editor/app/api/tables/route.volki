@@ -1,0 +1,15 @@
+//! /api/tables route — per-method API handlers.
+
+use crate::libs::web::http::request::Request;
+use crate::libs::web::http::response::Response;
+
+/// GET /api/tables — list all tables.
+pub fn get(_req: &Request) -> Response {
+    Response::ok().json(r#"{"tables":["users","posts","comments","sessions","migrations"]}"#)
+}
+
+/// POST /api/tables — create a new table (stub).
+pub fn post(_req: &Request) -> Response {
+    Response::new(crate::libs::web::http::status::StatusCode::CREATED)
+        .json(r#"{"status":"created"}"#)
+}

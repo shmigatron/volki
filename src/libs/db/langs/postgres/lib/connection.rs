@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use std::net::TcpStream;
+use crate::core::volkiwithstds::collections::{HashMap, String, Vec};
+use crate::core::volkiwithstds::net::TcpStream;
 
 use crate::libs::db::langs::postgres::lib::error::PgError;
 use crate::libs::db::langs::postgres::lib::protocol;
@@ -36,9 +36,8 @@ impl Connection {
                     if payload.len() < 4 {
                         return Err(PgError::Protocol("truncated auth message".into()));
                     }
-                    let auth_type = i32::from_be_bytes([
-                        payload[0], payload[1], payload[2], payload[3],
-                    ]);
+                    let auth_type =
+                        i32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
                     match auth_type {
                         0 => {
                             // AuthenticationOk
@@ -50,22 +49,17 @@ impl Connection {
                         5 => {
                             // MD5Password — salt is 4 bytes after auth type
                             if payload.len() < 8 {
-                                return Err(PgError::Protocol(
-                                    "truncated MD5 salt".into(),
-                                ));
+                                return Err(PgError::Protocol("truncated MD5 salt".into()));
                             }
-                            let salt: [u8; 4] =
-                                [payload[4], payload[5], payload[6], payload[7]];
+                            let salt: [u8; 4] = [payload[4], payload[5], payload[6], payload[7]];
                             let hashed = protocol::md5_password(user, password, &salt);
                             protocol::write_password(&mut stream, &hashed)?;
                         }
                         10 => {
-                            return Err(PgError::Auth(
-                                "SASL authentication not supported".into(),
-                            ));
+                            return Err(PgError::Auth("SASL authentication not supported".into()));
                         }
                         _ => {
-                            return Err(PgError::Auth(format!(
+                            return Err(PgError::Auth(crate::vformat!(
                                 "unsupported auth type: {auth_type}"
                             )));
                         }
@@ -74,12 +68,10 @@ impl Connection {
                 b'K' => {
                     // BackendKeyData
                     if payload.len() >= 8 {
-                        backend_pid = i32::from_be_bytes([
-                            payload[0], payload[1], payload[2], payload[3],
-                        ]);
-                        backend_key = i32::from_be_bytes([
-                            payload[4], payload[5], payload[6], payload[7],
-                        ]);
+                        backend_pid =
+                            i32::from_be_bytes([payload[0], payload[1], payload[2], payload[3]]);
+                        backend_key =
+                            i32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
                     }
                 }
                 b'S' => {
@@ -103,7 +95,7 @@ impl Connection {
                     // NoticeResponse — ignore during startup
                 }
                 _ => {
-                    return Err(PgError::Protocol(format!(
+                    return Err(PgError::Protocol(crate::vformat!(
                         "unexpected message during startup: 0x{tag:02x}"
                     )));
                 }
@@ -155,7 +147,7 @@ impl Connection {
                     // EmptyQueryResponse
                 }
                 _ => {
-                    return Err(PgError::Protocol(format!(
+                    return Err(PgError::Protocol(crate::vformat!(
                         "unexpected message in query: 0x{tag:02x}"
                     )));
                 }
@@ -189,7 +181,7 @@ impl Connection {
                 }
                 b'N' | b'I' => {}
                 _ => {
-                    return Err(PgError::Protocol(format!(
+                    return Err(PgError::Protocol(crate::vformat!(
                         "unexpected message in execute: 0x{tag:02x}"
                     )));
                 }
@@ -246,7 +238,7 @@ impl Connection {
                 }
                 b'N' => {}
                 _ => {
-                    return Err(PgError::Protocol(format!(
+                    return Err(PgError::Protocol(crate::vformat!(
                         "unexpected message in query_params: 0x{tag:02x}"
                     )));
                 }
@@ -256,15 +248,15 @@ impl Connection {
         Ok(rows)
     }
 
-    /// Send Terminate and close the connection.
-    pub fn close(mut self) -> Result<(), PgError> {
-        protocol::write_terminate(&mut self.stream)?;
-        Ok(())
+    /// Explicitly close the connection (sends Terminate).
+    /// Note: Drop also sends Terminate, so this is optional.
+    pub fn close(self) {
+        drop(self);
     }
 
     /// Retrieve a server parameter received during startup (e.g., "server_version").
     pub fn server_param(&self, key: &str) -> Option<&str> {
-        self.params.get(key).map(|s| s.as_str())
+        self.params.get(&String::from(key)).map(|s| s.as_str())
     }
 
     /// Backend process ID.
@@ -288,6 +280,12 @@ impl Connection {
     }
 }
 
+impl Drop for Connection {
+    fn drop(&mut self) {
+        let _ = protocol::write_terminate(&mut self.stream);
+    }
+}
+
 /// Read a null-terminated string from a byte slice.
 fn read_cstring_from(data: &[u8], offset: &mut usize) -> Result<String, PgError> {
     let start = *offset;
@@ -297,7 +295,7 @@ fn read_cstring_from(data: &[u8], offset: &mut usize) -> Result<String, PgError>
     if *offset >= data.len() {
         return Err(PgError::Protocol("unterminated string".into()));
     }
-    let s = String::from_utf8_lossy(&data[start..*offset]).into_owned();
+    let s = String::from_utf8_lossy(&data[start..*offset]);
     *offset += 1;
     Ok(s)
 }

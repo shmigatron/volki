@@ -1,5 +1,6 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
+use crate::core::volkiwithstds::collections::HashMap;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::path::PathBuf;
 
 use super::types::{LicenseCategory, PackageLicense, RiskLevel, ScanConfig, ScanResult};
 
@@ -27,7 +28,7 @@ pub fn finalize_scan(
     let mut by_category: HashMap<LicenseCategory, Vec<String>> = HashMap::new();
 
     for pkg in &packages {
-        let label = format!("{}@{}", pkg.name, pkg.version);
+        let label = crate::vformat!("{}@{}", pkg.name, pkg.version);
         by_license
             .entry(pkg.license.clone())
             .or_default()
@@ -48,19 +49,21 @@ pub fn finalize_scan(
 
 /// Resolve the user's home directory from $HOME.
 pub fn home_dir() -> Option<PathBuf> {
-    std::env::var("HOME").ok().map(PathBuf::from)
+    crate::core::volkiwithstds::env::var("HOME").map(|s| PathBuf::from(s.as_str()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::volkiwithstds::collections::ToString;
     use crate::libs::lang::shared::license::types::{LicenseSource, PackageLicense};
+    use crate::vvec;
 
     fn make_pkg(name: &str, version: &str, license: &str) -> PackageLicense {
         PackageLicense {
-            name: name.to_string(),
-            version: version.to_string(),
-            license: license.to_string(),
+            name: name.to_vstring(),
+            version: version.to_vstring(),
+            license: license.to_vstring(),
             category: LicenseCategory::from_license_str(license),
             source: LicenseSource::ManifestField,
         }
@@ -68,10 +71,10 @@ mod tests {
 
     fn default_config(filter: Option<&str>, exclude: Option<&str>, risk: RiskLevel) -> ScanConfig {
         ScanConfig {
-            path: ".".to_string(),
+            path: crate::vstr!("."),
             include_dev: false,
-            filter: filter.map(|s| s.to_string()),
-            exclude: exclude.map(|s| s.to_string()),
+            filter: filter.map(|s| s.to_vstring()),
+            exclude: exclude.map(|s| s.to_vstring()),
             risk_level: risk,
         }
     }
@@ -81,7 +84,7 @@ mod tests {
     #[test]
     fn finalize_empty_packages() {
         let config = default_config(None, None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), vec![], &config);
+        let result = finalize_scan(crate::vstr!("test"), vvec![], &config);
         assert_eq!(result.total_packages, 0);
         assert!(result.packages.is_empty());
         assert!(result.by_license.is_empty());
@@ -90,13 +93,13 @@ mod tests {
 
     #[test]
     fn finalize_alphabetical_sorting() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("zlib", "1.0", "MIT"),
             make_pkg("alpha", "1.0", "MIT"),
             make_pkg("middle", "1.0", "MIT"),
         ];
         let config = default_config(None, None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.packages[0].name, "alpha");
         assert_eq!(result.packages[1].name, "middle");
         assert_eq!(result.packages[2].name, "zlib");
@@ -104,59 +107,67 @@ mod tests {
 
     #[test]
     fn finalize_by_license_map() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("a", "1.0", "MIT"),
             make_pkg("b", "2.0", "MIT"),
             make_pkg("c", "1.0", "Apache-2.0"),
         ];
         let config = default_config(None, None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.by_license.get("MIT").unwrap().len(), 2);
         assert_eq!(result.by_license.get("Apache-2.0").unwrap().len(), 1);
     }
 
     #[test]
     fn finalize_by_category_map() {
-        let pkgs = vec![
-            make_pkg("a", "1.0", "MIT"),
-            make_pkg("b", "1.0", "GPL-3.0"),
-        ];
+        let pkgs = vvec![make_pkg("a", "1.0", "MIT"), make_pkg("b", "1.0", "GPL-3.0"),];
         let config = default_config(None, None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
-        assert_eq!(result.by_category.get(&LicenseCategory::Permissive).unwrap().len(), 1);
-        assert_eq!(result.by_category.get(&LicenseCategory::StrongCopyleft).unwrap().len(), 1);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
+        assert_eq!(
+            result
+                .by_category
+                .get(&LicenseCategory::Permissive)
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            result
+                .by_category
+                .get(&LicenseCategory::StrongCopyleft)
+                .unwrap()
+                .len(),
+            1
+        );
     }
 
     // --- Filter ---
 
     #[test]
     fn filter_retains_matching() {
-        let pkgs = vec![
-            make_pkg("a", "1.0", "MIT"),
-            make_pkg("b", "1.0", "GPL-3.0"),
-        ];
+        let pkgs = vvec![make_pkg("a", "1.0", "MIT"), make_pkg("b", "1.0", "GPL-3.0"),];
         let config = default_config(Some("MIT"), None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
         assert_eq!(result.packages[0].license, "MIT");
     }
 
     #[test]
     fn filter_case_insensitive() {
-        let pkgs = vec![make_pkg("a", "1.0", "MIT")];
+        let pkgs = vvec![make_pkg("a", "1.0", "MIT")];
         let config = default_config(Some("mit"), None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
     }
 
     #[test]
     fn filter_partial_match() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("a", "1.0", "Apache-2.0"),
             make_pkg("b", "1.0", "MIT"),
         ];
         let config = default_config(Some("Apache"), None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
     }
 
@@ -164,24 +175,18 @@ mod tests {
 
     #[test]
     fn exclude_removes_matching() {
-        let pkgs = vec![
-            make_pkg("a", "1.0", "MIT"),
-            make_pkg("b", "1.0", "GPL-3.0"),
-        ];
+        let pkgs = vvec![make_pkg("a", "1.0", "MIT"), make_pkg("b", "1.0", "GPL-3.0"),];
         let config = default_config(None, Some("GPL"), RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
         assert_eq!(result.packages[0].license, "MIT");
     }
 
     #[test]
     fn exclude_case_insensitive() {
-        let pkgs = vec![
-            make_pkg("a", "1.0", "MIT"),
-            make_pkg("b", "1.0", "GPL-3.0"),
-        ];
+        let pkgs = vvec![make_pkg("a", "1.0", "MIT"), make_pkg("b", "1.0", "GPL-3.0"),];
         let config = default_config(None, Some("gpl"), RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
     }
 
@@ -189,49 +194,49 @@ mod tests {
 
     #[test]
     fn risk_high_keeps_all() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("a", "1.0", "MIT"),
             make_pkg("b", "1.0", "GPL-3.0"),
             make_pkg("c", "1.0", "UNKNOWN"),
         ];
         let config = default_config(None, None, RiskLevel::High);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 3);
     }
 
     #[test]
     fn risk_low_only_permissive() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("a", "1.0", "MIT"),
             make_pkg("b", "1.0", "GPL-3.0"),
             make_pkg("c", "1.0", "LGPL-2.1"),
         ];
         let config = default_config(None, None, RiskLevel::Low);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
         assert_eq!(result.packages[0].license, "MIT");
     }
 
     #[test]
     fn risk_medium_keeps_weak_copyleft() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("a", "1.0", "MIT"),
             make_pkg("b", "1.0", "LGPL-2.1"),
             make_pkg("c", "1.0", "GPL-3.0"),
         ];
         let config = default_config(None, None, RiskLevel::Medium);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 2);
     }
 
     #[test]
     fn risk_low_removes_unknown() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("a", "1.0", "MIT"),
             make_pkg("b", "1.0", "SomethingWeird"),
         ];
         let config = default_config(None, None, RiskLevel::Low);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
     }
 
@@ -239,13 +244,13 @@ mod tests {
 
     #[test]
     fn combined_filter_and_risk() {
-        let pkgs = vec![
+        let pkgs = vvec![
             make_pkg("a", "1.0", "MIT"),
             make_pkg("b", "1.0", "Apache-2.0"),
             make_pkg("c", "1.0", "GPL-3.0"),
         ];
         let config = default_config(Some("MIT"), None, RiskLevel::Low);
-        let result = finalize_scan("test".to_string(), pkgs, &config);
+        let result = finalize_scan(crate::vstr!("test"), pkgs, &config);
         assert_eq!(result.total_packages, 1);
         assert_eq!(result.packages[0].name, "a");
     }

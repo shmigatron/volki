@@ -1,10 +1,13 @@
-use std::path::Path;
+use crate::core::volkiwithstds::path::Path;
+
+use crate::{veprintln, vvec};
 
 use crate::core::cli::command::{Command, OptionSpec};
 use crate::core::cli::error::CliError;
 use crate::core::cli::output;
 use crate::core::cli::parser::ParsedArgs;
 use crate::core::cli::style;
+use crate::core::volkiwithstds::collections::Vec;
 use crate::libs::lang::js::outdated::checker;
 use crate::libs::lang::js::outdated::checker::UpdateSeverity;
 
@@ -27,7 +30,7 @@ impl Command for OutdatedCommand {
     }
 
     fn options(&self) -> Vec<OptionSpec> {
-        vec![
+        vvec![
             OptionSpec {
                 name: "path",
                 description: "Project root directory",
@@ -52,59 +55,56 @@ impl Command for OutdatedCommand {
         let dev = args.get_flag("dev");
         let root = Path::new(path);
 
-        let result =
-            checker::check(root, dev).map_err(|e| CliError::InvalidUsage(e.to_string()))?;
+        let result = checker::check(root, dev)
+            .map_err(|e| CliError::InvalidUsage(crate::vformat!("{e}")))?;
 
         if result.packages.is_empty() {
             output::print_item(
                 &style::green(style::CHECK),
                 &style::green("all packages are up to date"),
             );
-            eprintln!();
+            veprintln!();
             return Ok(());
         }
 
         print_outdated_table(&result);
 
-        eprintln!();
+        veprintln!();
         output::print_hint("run volki fix to update packages");
-        eprintln!();
+        veprintln!();
 
         Ok(())
     }
 }
 
 pub fn print_outdated_table(result: &checker::OutdatedResult) {
+    use crate::core::volkiwithstds::collections::{String, Vec};
+
     let headers = ["Package", "Current", "Wanted", "Latest", "Severity"];
     let aligns = ['l', 'l', 'l', 'l', 'l'];
 
-    let rows: Vec<Vec<String>> = result
-        .packages
-        .iter()
-        .map(|pkg| {
-            let sev_str = pkg.severity.to_string();
-            let severity_styled = match pkg.severity {
-                UpdateSeverity::Major => style::red(&format!("{} {}", style::WARN, sev_str)),
-                UpdateSeverity::Minor => style::yellow(&sev_str),
-                UpdateSeverity::Patch => style::dim(&sev_str),
-            };
-            vec![
-                pkg.name.clone(),
-                pkg.current.clone(),
-                pkg.wanted.clone(),
-                pkg.latest.clone(),
-                severity_styled,
-            ]
-        })
-        .collect();
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    for pkg in &result.packages {
+        let sev_str = crate::vformat!("{}", pkg.severity);
+        let severity_styled = match pkg.severity {
+            UpdateSeverity::Major => style::red(&crate::vformat!("{} {}", style::WARN, sev_str)),
+            UpdateSeverity::Minor => style::yellow(&sev_str),
+            UpdateSeverity::Patch => style::dim(&sev_str),
+        };
+        let mut row = Vec::new();
+        row.push(String::from(pkg.name.as_str()));
+        row.push(String::from(pkg.current.as_str()));
+        row.push(String::from(pkg.wanted.as_str()));
+        row.push(String::from(pkg.latest.as_str()));
+        row.push(severity_styled);
+        rows.push(row);
+    }
 
-    output::print_table(&headers, &rows, &aligns);
+    output::print_table(&headers, rows.as_slice(), &aligns);
 
-    eprintln!();
-    output::print_summary_box(&[
-        &format!(
-            "{} outdated package(s)",
-            style::yellow(&result.total.to_string()),
-        ),
-    ]);
+    veprintln!();
+    output::print_summary_box(&[&crate::vformat!(
+        "{} outdated package(s)",
+        style::yellow(&crate::vformat!("{}", result.total)),
+    )]);
 }

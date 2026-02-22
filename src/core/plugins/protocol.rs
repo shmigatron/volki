@@ -1,4 +1,6 @@
-use crate::libs::lang::shared::license::parsers::json::{JsonValue, extract_top_level};
+use crate::core::volkiwithstds::collections::json::{JsonValue, extract_top_level};
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::vvec;
 
 #[derive(Debug, Clone)]
 pub enum JsonOut {
@@ -34,7 +36,8 @@ impl JsonOut {
                 buf.push('"');
             }
             JsonOut::Int(n) => {
-                buf.push_str(&n.to_string());
+                let s = crate::vformat!("{n}");
+                buf.push_str(&s);
             }
             JsonOut::Bool(b) => {
                 buf.push_str(if *b { "true" } else { "false" });
@@ -84,11 +87,11 @@ impl PluginRequest {
                 .collect(),
         );
 
-        let obj = JsonOut::Object(vec![
-            ("version".to_string(), JsonOut::Int(1)),
-            ("hook".to_string(), JsonOut::Str(self.hook.clone())),
-            ("data".to_string(), self.data.clone()),
-            ("plugin_options".to_string(), options),
+        let obj = JsonOut::Object(vvec![
+            (String::from("version"), JsonOut::Int(1)),
+            (String::from("hook"), JsonOut::Str(self.hook.clone())),
+            (String::from("data"), self.data.clone()),
+            (String::from("plugin_options"), options),
         ]);
 
         obj.serialize()
@@ -104,30 +107,30 @@ pub enum PluginResponse {
 
 pub fn parse_response(raw: &str) -> Result<PluginResponse, String> {
     let map = extract_top_level(raw);
+    let status_key = String::from("status");
+    let data_key = String::from("data");
+    let error_key = String::from("error");
 
     let status = map
-        .get("status")
+        .get(&status_key)
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "missing 'status' field".to_string())?;
+        .ok_or_else(|| String::from("missing 'status' field"))?;
 
     match status {
         "ok" => {
-            let data = map
-                .get("data")
-                .cloned()
-                .unwrap_or(JsonValue::Null);
+            let data = map.get(&data_key).cloned().unwrap_or(JsonValue::Null);
             Ok(PluginResponse::Ok { data })
         }
         "skip" => Ok(PluginResponse::Skip),
         "error" => {
-            let message = map
-                .get("error")
-                .and_then(|v| v.as_str())
-                .unwrap_or("unknown error")
-                .to_string();
+            let message = String::from(
+                map.get(&error_key)
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown error"),
+            );
             Ok(PluginResponse::Error { message })
         }
-        other => Err(format!("unknown status: {other}")),
+        other => Err(crate::vformat!("unknown status: {other}")),
     }
 }
 
@@ -137,61 +140,63 @@ mod tests {
 
     #[test]
     fn serialize_string() {
-        let j = JsonOut::Str("hello".into());
-        assert_eq!(j.serialize(), "\"hello\"");
+        let j = JsonOut::Str(String::from("hello"));
+        assert_eq!(j.serialize().as_str(), "\"hello\"");
     }
 
     #[test]
     fn serialize_string_with_escapes() {
-        let j = JsonOut::Str("a\"b\\c\nd".into());
-        assert_eq!(j.serialize(), "\"a\\\"b\\\\c\\nd\"");
+        let j = JsonOut::Str(String::from("a\"b\\c\nd"));
+        assert_eq!(j.serialize().as_str(), "\"a\\\"b\\\\c\\nd\"");
     }
 
     #[test]
     fn serialize_int() {
-        assert_eq!(JsonOut::Int(42).serialize(), "42");
-        assert_eq!(JsonOut::Int(-1).serialize(), "-1");
+        assert_eq!(JsonOut::Int(42).serialize().as_str(), "42");
+        assert_eq!(JsonOut::Int(-1).serialize().as_str(), "-1");
     }
 
     #[test]
     fn serialize_bool() {
-        assert_eq!(JsonOut::Bool(true).serialize(), "true");
-        assert_eq!(JsonOut::Bool(false).serialize(), "false");
+        assert_eq!(JsonOut::Bool(true).serialize().as_str(), "true");
+        assert_eq!(JsonOut::Bool(false).serialize().as_str(), "false");
     }
 
     #[test]
     fn serialize_null() {
-        assert_eq!(JsonOut::Null.serialize(), "null");
+        assert_eq!(JsonOut::Null.serialize().as_str(), "null");
     }
 
     #[test]
     fn serialize_array() {
-        let j = JsonOut::Array(vec![JsonOut::Int(1), JsonOut::Str("a".into())]);
-        assert_eq!(j.serialize(), "[1,\"a\"]");
+        let j = JsonOut::Array(vvec![JsonOut::Int(1), JsonOut::Str(String::from("a"))]);
+        assert_eq!(j.serialize().as_str(), "[1,\"a\"]");
     }
 
     #[test]
     fn serialize_object() {
-        let j = JsonOut::Object(vec![
-            ("key".into(), JsonOut::Str("val".into())),
-        ]);
-        assert_eq!(j.serialize(), "{\"key\":\"val\"}");
+        let j = JsonOut::Object(vvec![(
+            String::from("key"),
+            JsonOut::Str(String::from("val"))
+        ),]);
+        assert_eq!(j.serialize().as_str(), "{\"key\":\"val\"}");
     }
 
     #[test]
     fn serialize_nested() {
-        let j = JsonOut::Object(vec![
-            ("arr".into(), JsonOut::Array(vec![JsonOut::Bool(true)])),
-        ]);
-        assert_eq!(j.serialize(), "{\"arr\":[true]}");
+        let j = JsonOut::Object(vvec![(
+            String::from("arr"),
+            JsonOut::Array(vvec![JsonOut::Bool(true)])
+        ),]);
+        assert_eq!(j.serialize().as_str(), "{\"arr\":[true]}");
     }
 
     #[test]
     fn request_to_json() {
         let req = PluginRequest {
-            hook: "formatter.before_all".into(),
-            data: JsonOut::Object(vec![("tokens".into(), JsonOut::Array(vec![]))]),
-            plugin_options: vec![("key".into(), "val".into())],
+            hook: String::from("formatter.before_all"),
+            data: JsonOut::Object(vvec![(String::from("tokens"), JsonOut::Array(Vec::new()))]),
+            plugin_options: vvec![(String::from("key"), String::from("val"))],
         };
         let json = req.to_json();
         assert!(json.contains("\"version\":1"));
@@ -218,7 +223,7 @@ mod tests {
         let raw = r#"{"version":1,"status":"error","error":"bad stuff"}"#;
         let resp = parse_response(raw).unwrap();
         match resp {
-            PluginResponse::Error { message } => assert_eq!(message, "bad stuff"),
+            PluginResponse::Error { message } => assert_eq!(message.as_str(), "bad stuff"),
             _ => panic!("expected error"),
         }
     }

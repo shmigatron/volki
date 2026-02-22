@@ -1,8 +1,10 @@
 pub mod parser;
 
-use std::fmt;
-use std::io;
-use std::path::{Path, PathBuf};
+use crate::vformat;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::path::{Path, PathBuf};
+use crate::core::volkiwithstds::io::IoError;
+use core::fmt;
 
 use crate::core::package::detect::types::DetectedProject;
 use crate::core::plugins::types::PluginSpec;
@@ -24,12 +26,12 @@ impl VolkiConfig {
     pub fn load(dir: &Path) -> Result<Self, ConfigError> {
         let path = dir.join(CONFIG_FILENAME);
         if !path.is_file() {
-            log_error!("config not found: {}", path.display());
+            log_error!("config not found: {}", path.as_str());
             return Err(ConfigError::NotFound(path));
         }
 
-        log_debug!("loading config from {}", path.display());
-        let content = std::fs::read_to_string(&path)?;
+        log_debug!("loading config from {}", path.as_str());
+        let content = crate::core::volkiwithstds::fs::read_to_string(&path)?;
         let table = parser::parse(&content)?;
 
         Ok(VolkiConfig { path, table })
@@ -38,24 +40,24 @@ impl VolkiConfig {
     pub fn init(dir: &Path, projects: &[DetectedProject]) -> Result<PathBuf, ConfigError> {
         let path = dir.join(CONFIG_FILENAME);
         if path.exists() {
-            log_error!("config already exists: {}", path.display());
+            log_error!("config already exists: {}", path.as_str());
             return Err(ConfigError::AlreadyExists(path));
         }
-        log_debug!("writing config to {}", path.display());
+        log_debug!("writing config to {}", path.as_str());
 
         let content = if let Some(project) = projects.first() {
             let mut buf = String::from("[volki]\n");
-            buf.push_str(&format!("ecosystem = \"{}\"\n", project.ecosystem.as_toml_str()));
-            buf.push_str(&format!("manager = \"{}\"\n", project.manager.as_toml_str()));
+            buf.push_str(&vformat!("ecosystem = \"{}\"\n", project.ecosystem.as_toml_str()));
+            buf.push_str(&vformat!("manager = \"{}\"\n", project.manager.as_toml_str()));
             if let Some(ref fw) = project.framework {
-                buf.push_str(&format!("framework = \"{}\"\n", fw.as_toml_str()));
+                buf.push_str(&vformat!("framework = \"{}\"\n", fw.as_toml_str()));
             }
             buf
         } else {
-            DEFAULT_CONFIG.to_string()
+            String::from(DEFAULT_CONFIG)
         };
 
-        std::fs::write(&path, content)?;
+        crate::core::volkiwithstds::fs::write(&path, content.as_bytes())?;
         Ok(path)
     }
 
@@ -74,9 +76,9 @@ impl VolkiConfig {
 
         list.iter()
             .map(|name| {
-                let options = self.table.entries_with_prefix(&format!("plugins.{name}"));
+                let options = self.table.entries_with_prefix(&vformat!("plugins.{name}"));
                 PluginSpec {
-                    name: name.to_string(),
+                    name: String::from(*name),
                     runtime: None,
                     options,
                 }
@@ -89,16 +91,16 @@ impl VolkiConfig {
 pub enum ConfigError {
     NotFound(PathBuf),
     AlreadyExists(PathBuf),
-    Io(io::Error),
+    Io(IoError),
     Parse(parser::ParseError),
 }
 
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigError::NotFound(p) => write!(f, "config not found: {}", p.display()),
+            ConfigError::NotFound(p) => write!(f, "config not found: {}", p.as_str()),
             ConfigError::AlreadyExists(p) => {
-                write!(f, "config already exists: {}", p.display())
+                write!(f, "config already exists: {}", p.as_str())
             }
             ConfigError::Io(e) => write!(f, "IO error: {e}"),
             ConfigError::Parse(e) => write!(f, "{e}"),
@@ -106,8 +108,8 @@ impl fmt::Display for ConfigError {
     }
 }
 
-impl From<io::Error> for ConfigError {
-    fn from(e: io::Error) -> Self {
+impl From<IoError> for ConfigError {
+    fn from(e: IoError) -> Self {
         ConfigError::Io(e)
     }
 }
@@ -122,10 +124,11 @@ impl From<parser::ParseError> for ConfigError {
 mod tests {
     use super::*;
     use crate::core::package::detect::types::{Ecosystem, Framework, PackageManager};
-    use std::fs;
+    use crate::core::volkiwithstds::fs;
 
     fn tmp(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("volki_config_{}_{}", std::process::id(), name));
+        let dir = crate::core::volkiwithstds::env::temp_dir()
+            .join(&vformat!("volki_config_{}_{}", crate::core::volkiwithstds::process::id(), name));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
@@ -205,7 +208,7 @@ mod tests {
         let dir = tmp("load_valid");
         VolkiConfig::init(&dir, &[]).unwrap();
         let config = VolkiConfig::load(&dir).unwrap();
-        assert!(config.path.ends_with(CONFIG_FILENAME));
+        assert!(config.path.as_str().ends_with(CONFIG_FILENAME));
         cleanup(&dir);
     }
 }

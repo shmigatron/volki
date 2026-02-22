@@ -1,0 +1,58 @@
+/// HTML Document
+///
+/// `HtmlDocument` represents a complete HTML page with `<head>` and `<body>` sections.
+/// It provides a builder API for constructing full pages, and is the return type
+/// for page handler functions (aliased as `Html`).
+
+/// A complete HTML document with head and body sections.
+///
+/// ```
+/// fn home(req: &Request) -> Html {
+///     HtmlDocument::new()
+///         .lang("en")
+///         .title("Home")
+///         .charset("utf-8")
+///         .viewport()
+///         .stylesheet("/styles.css")
+///         .body_node(
+///             div().class("page").child(
+///                 h1().text("Welcome")
+///             ).into_node()
+///         )
+/// }
+/// ```
+///
+/// Builder methods:
+///   - `.lang(lang: &str) -> Self` — Set the document language (e.g. "en")
+///   - `.title(title: &str) -> Self` — Set the page title
+///   - `.charset(charset: &str) -> Self` — Set the character encoding
+///   - `.viewport() -> Self` — Add a responsive viewport meta tag
+///   - `.stylesheet(href: &str) -> Self` — Add a `<link rel="stylesheet">` to head
+///   - `.script(src: &str) -> Self` — Add a `<script src="...">` to head
+///   - `.script_module(src: &str) -> Self` — Add a `<script type="module">` to head
+///   - `.inline_style(css: &str) -> Self` — Add inline `<style>` to head
+///   - `.head_node(node: HtmlNode) -> Self` — Add a custom node to `<head>`
+///   - `.body_node(node: HtmlNode) -> Self` — Add a node to `<body>`
+///   - `.body_nodes(nodes: Vec<HtmlNode>) -> Self` — Add multiple nodes to `<body>`
+///   - `.metadata(m: &Metadata) -> Self` — Apply metadata to the document head
+///   - `.render() -> String` — Render the full `<!DOCTYPE html>` string
+pub struct HtmlDocument {
+    pub lang: String,
+    pub head: Vec<HtmlNode>,
+    pub body: Vec<HtmlNode>,
+}
+
+pub fn HtmlDocument::new() -> Self
+pub fn HtmlDocument::lang(mut self, lang: &str) -> Self
+pub fn HtmlDocument::title(mut self, title: &str) -> Self
+pub fn HtmlDocument::charset(mut self, charset: &str) -> Self
+pub fn HtmlDocument::viewport(mut self) -> Self
+pub fn HtmlDocument::stylesheet(mut self, href: &str) -> Self
+pub fn HtmlDocument::script(mut self, src: &str) -> Self
+pub fn HtmlDocument::script_module(mut self, src: &str) -> Self
+pub fn HtmlDocument::inline_style(mut self, css: &str) -> Self
+pub fn HtmlDocument::head_node(mut self, node: HtmlNode) -> Self
+pub fn HtmlDocument::body_node(mut self, node: HtmlNode) -> Self
+pub fn HtmlDocument::body_nodes(mut self, nodes: Vec<HtmlNode>) -> Self
+pub fn HtmlDocument::metadata(mut self, m: &Metadata) -> Self
+pub fn HtmlDocument::render(&self) -> String

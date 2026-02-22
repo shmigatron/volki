@@ -1,5 +1,6 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
 use crate::libs::lang::shared::license::heuristic::detect_license_from_file;
 use crate::libs::lang::shared::license::parsers::key_value::parse_gemfile_lock_gems;
@@ -14,14 +15,14 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let gemfile_lock = root.join("Gemfile.lock");
 
     if !gemfile.exists() {
-        return Err(LicenseError::NoManifest(
-            "No Gemfile found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(String::from(
+            "No Gemfile found in project directory",
+        )));
     }
     if !gemfile_lock.exists() {
-        return Err(LicenseError::NoDependencyDir(
-            "No Gemfile.lock found (run bundle install first)".to_string(),
-        ));
+        return Err(LicenseError::NoDependencyDir(String::from(
+            "No Gemfile.lock found (run bundle install first)",
+        )));
     }
 
     let project_name = read_project_name(root);
@@ -30,7 +31,8 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let gems = parse_gemfile_lock_gems(&lock_content);
 
     let vendor_bundle = root.join("vendor").join("bundle");
-    let gem_home = std::env::var("GEM_HOME").ok().map(std::path::PathBuf::from);
+    let gem_home = crate::core::volkiwithstds::env::var("GEM_HOME")
+        .map(|s| crate::core::volkiwithstds::path::PathBuf::from(s.as_str()));
 
     let mut packages = Vec::new();
 
@@ -54,9 +56,9 @@ fn find_gem_license(
     name: &str,
     version: &str,
     vendor_bundle: &Path,
-    gem_home: &Option<std::path::PathBuf>,
+    gem_home: &Option<crate::core::volkiwithstds::path::PathBuf>,
 ) -> (String, LicenseSource) {
-    let gem_dir_name = format!("{name}-{version}");
+    let gem_dir_name = crate::vformat!("{name}-{version}");
 
     if vendor_bundle.is_dir() {
         if let Some(result) = search_gem_in_bundle(vendor_bundle, &gem_dir_name) {
@@ -76,10 +78,13 @@ fn find_gem_license(
         }
     }
 
-    ("UNKNOWN".to_string(), LicenseSource::NotFound)
+    (String::from("UNKNOWN"), LicenseSource::NotFound)
 }
 
-fn search_gem_in_bundle(vendor_bundle: &Path, gem_dir_name: &str) -> Option<(String, LicenseSource)> {
+fn search_gem_in_bundle(
+    vendor_bundle: &Path,
+    gem_dir_name: &str,
+) -> Option<(String, LicenseSource)> {
     // vendor/bundle may contain ruby/VERSION/gems/
     let Ok(entries) = fs::read_dir(vendor_bundle) else {
         return None;
@@ -111,14 +116,14 @@ fn search_gem_in_bundle(vendor_bundle: &Path, gem_dir_name: &str) -> Option<(Str
 fn read_gemspec_license(gem_home: &Path, name: &str, version: &str) -> Option<String> {
     let spec_path = gem_home
         .join("specifications")
-        .join(format!("{name}-{version}.gemspec"));
+        .join(&crate::vformat!("{name}-{version}.gemspec"));
 
     let content = fs::read_to_string(&spec_path).ok()?;
 
     // Look for s.license = "MIT" or s.licenses = ["MIT"]
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.contains(".license") && trimmed.contains('=') {
+        if trimmed.contains(".license") && trimmed.contains("=") {
             if let Some(val) = extract_ruby_string(trimmed) {
                 return Some(val);
             }
@@ -130,16 +135,16 @@ fn read_gemspec_license(gem_home: &Path, name: &str, version: &str) -> Option<St
 
 fn extract_ruby_string(line: &str) -> Option<String> {
     // Match "value" or 'value' after =
-    let after_eq = line.split('=').nth(1)?.trim();
+    let after_eq = line.split("=").nth(1)?.trim();
     let trimmed = after_eq
         .trim_start_matches('[')
         .trim_end_matches(']')
         .trim();
 
-    if (trimmed.starts_with('"') && trimmed.ends_with('"'))
+    if (trimmed.starts_with("\"") && trimmed.ends_with('"'))
         || (trimmed.starts_with('\'') && trimmed.ends_with('\''))
     {
-        Some(trimmed[1..trimmed.len() - 1].to_string())
+        Some(String::from(&trimmed[1..trimmed.len() - 1]))
     } else {
         None
     }
@@ -149,14 +154,14 @@ fn read_project_name(root: &Path) -> String {
     if let Ok(entries) = fs::read_dir(root) {
         for entry in entries.flatten() {
             let name = entry.file_name();
-            let name_str = name.to_string_lossy();
+            let name_str = name;
             if name_str.ends_with(".gemspec") {
-                return name_str.trim_end_matches(".gemspec").to_string();
+                return String::from(name_str.trim_end_matches(".gemspec"));
             }
         }
     }
 
     root.file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unnamed".to_string())
+        .map(String::from)
+        .unwrap_or_else(|| String::from("unnamed"))
 }

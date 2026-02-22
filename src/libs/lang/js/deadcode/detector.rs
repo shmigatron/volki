@@ -1,14 +1,17 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::fmt;
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{HashMap, HashSet, VecDeque};
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fmt;
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::io;
+use crate::core::volkiwithstds::path::{Path, PathBuf};
 
+use crate::core::volkiwithstds::collections::json::{JsonValue, extract_top_level};
 use crate::libs::lang::js::analysis::parser::parse_imports_exports;
 use crate::libs::lang::js::analysis::resolver::resolve_import;
 use crate::libs::lang::js::analysis::types::{ExportKind, FileInfo, ImportedSymbols};
 use crate::libs::lang::js::formatter::walker::{WalkConfig, walk_files};
-use crate::libs::lang::shared::license::parsers::json::{JsonValue, extract_top_level};
+use crate::vvec;
 
 #[derive(Debug)]
 pub struct DeadCodeResult {
@@ -34,7 +37,7 @@ pub struct UnusedImport {
 
 #[derive(Debug)]
 pub enum DeadCodeError {
-    Io(io::Error),
+    Io(io::IoError),
     NoSourceFiles(String),
 }
 
@@ -47,8 +50,8 @@ impl fmt::Display for DeadCodeError {
     }
 }
 
-impl From<io::Error> for DeadCodeError {
-    fn from(e: io::Error) -> Self {
+impl From<io::IoError> for DeadCodeError {
+    fn from(e: io::IoError) -> Self {
         DeadCodeError::Io(e)
     }
 }
@@ -102,7 +105,7 @@ fn try_parse_tsconfig_file(root: &Path, path: &Path, depth: u32) -> Option<TsCon
                 if let Some(arr) = value.as_array() {
                     let replacements: Vec<String> = arr
                         .iter()
-                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .filter_map(|v| v.as_str().map(|s| s.to_vstring()))
                         .collect();
                     if !replacements.is_empty() {
                         aliases.insert(key.clone(), replacements);
@@ -132,11 +135,7 @@ fn try_parse_tsconfig_file(root: &Path, path: &Path, depth: u32) -> Option<TsCon
     None
 }
 
-fn resolve_with_aliases(
-    source: &str,
-    from_file: &Path,
-    tsconfig: &TsConfig,
-) -> Option<PathBuf> {
+fn resolve_with_aliases(source: &str, from_file: &Path, tsconfig: &TsConfig) -> Option<PathBuf> {
     // First try normal relative resolution
     if let Some(resolved) = resolve_import(source, from_file) {
         return Some(resolved);
@@ -170,7 +169,11 @@ fn resolve_with_aliases(
 
 fn try_resolve_path(target: &Path) -> Option<PathBuf> {
     if target.is_file() {
-        return Some(target.canonicalize().unwrap_or_else(|_| target.to_path_buf()));
+        return Some(
+            target
+                .canonicalize()
+                .unwrap_or_else(|_| target.to_path_buf()),
+        );
     }
 
     for ext in &["ts", "tsx", "js", "jsx", "mjs", "cjs"] {
@@ -196,7 +199,7 @@ fn try_resolve_path(target: &Path) -> Option<PathBuf> {
 
 fn is_config_file(path: &Path) -> bool {
     let stem = match path.file_stem() {
-        Some(s) => s.to_string_lossy(),
+        Some(s) => s,
         None => return false,
     };
     stem.ends_with(".config") || stem.ends_with(".setup")
@@ -235,7 +238,7 @@ fn is_decorated_export(source: &str, export_line: usize) -> bool {
         }
 
         if depth <= 0 {
-            if trimmed.starts_with('@') && !trimmed.starts_with("@ts-") {
+            if trimmed.starts_with("@") && !trimmed.starts_with("@ts-") {
                 return true;
             }
             if trimmed.is_empty() {
@@ -270,7 +273,7 @@ fn is_decorated_export(source: &str, export_line: usize) -> bool {
         }
         // Only check lines inside the class body (after opening brace)
         if entered_body && brace_depth > 0 && i > export_line - 1 {
-            if trimmed.starts_with('@') && !trimmed.starts_with("@ts-") {
+            if trimmed.starts_with("@") && !trimmed.starts_with("@ts-") {
                 return true;
             }
         }
@@ -355,21 +358,18 @@ pub fn detect(root: &Path, entry_points: &[String]) -> Result<DeadCodeResult, De
     let files = walk_files(root, &config).map_err(DeadCodeError::Io)?;
 
     if files.is_empty() {
-        return Err(DeadCodeError::NoSourceFiles(
-            "No JS/TS source files found".to_string(),
-        ));
+        return Err(DeadCodeError::NoSourceFiles(crate::vstr!(
+            "No JS/TS source files found"
+        )));
     }
 
     // Filter out config files (*.config.ts, *.setup.js, etc.)
-    let files: Vec<PathBuf> = files
-        .into_iter()
-        .filter(|f| !is_config_file(f))
-        .collect();
+    let files: Vec<PathBuf> = files.into_iter().filter(|f| !is_config_file(f)).collect();
 
     if files.is_empty() {
-        return Err(DeadCodeError::NoSourceFiles(
-            "No JS/TS source files found".to_string(),
-        ));
+        return Err(DeadCodeError::NoSourceFiles(crate::vstr!(
+            "No JS/TS source files found"
+        )));
     }
 
     // Parse tsconfig for path aliases
@@ -410,7 +410,7 @@ pub fn detect(root: &Path, entry_points: &[String]) -> Result<DeadCodeResult, De
             let unused_exports = find_unused_exports(&file_infos, &tsconfig);
             let unused_exports = filter_decorated_exports(unused_exports);
             return Ok(DeadCodeResult {
-                unused_files: vec![],
+                unused_files: vvec![],
                 unused_exports,
                 unused_imports: find_unused_imports(&file_infos),
             });
@@ -421,10 +421,8 @@ pub fn detect(root: &Path, entry_points: &[String]) -> Result<DeadCodeResult, De
             if let Ok(canonical) = path.canonicalize() {
                 entries.insert(canonical);
             } else {
-                let resolved = resolve_import(
-                    &format!("./{entry}"),
-                    &root.join("__dummy__"),
-                );
+                let resolved =
+                    resolve_import(&crate::vformat!("./{entry}"), &root.join("__dummy__"));
                 if let Some(p) = resolved {
                     entries.insert(p);
                 }
@@ -500,10 +498,10 @@ fn detect_entry_points(root: &Path) -> Option<Vec<String>> {
     let mut entries = Vec::new();
 
     if let Some(main) = map.get("main").and_then(|v| v.as_str()) {
-        entries.push(main.to_string());
+        entries.push(main.to_vstring());
     }
     if let Some(module) = map.get("module").and_then(|v| v.as_str()) {
-        entries.push(module.to_string());
+        entries.push(module.to_vstring());
     }
     if let Some(exports) = map.get("exports") {
         collect_export_entries(exports, &mut entries);
@@ -570,21 +568,13 @@ fn find_unused_exports_in(
                 match &imp.symbols {
                     ImportedSymbols::Default(_) => {
                         increment_usage_or_follow(
-                            &mut usage,
-                            file_infos,
-                            &target,
-                            "default",
-                            tsconfig,
+                            &mut usage, file_infos, &target, "default", tsconfig,
                         );
                     }
                     ImportedSymbols::Named(names) => {
                         for name in names {
                             increment_usage_or_follow(
-                                &mut usage,
-                                file_infos,
-                                &target,
-                                name,
-                                tsconfig,
+                                &mut usage, file_infos, &target, name, tsconfig,
                             );
                         }
                     }
@@ -625,14 +615,14 @@ fn increment_usage_or_follow(
     name: &str,
     tsconfig: &TsConfig,
 ) {
-    let key = (target.clone(), name.to_string());
+    let key = (target.clone(), name.to_vstring());
     if let Some(count) = usage.get_mut(&key) {
         *count += 1;
     } else {
         // Follow re-export chain
         let mut visited = HashSet::new();
         if let Some(origin) = find_export_origin(file_infos, target, name, tsconfig, &mut visited) {
-            if let Some(count) = usage.get_mut(&(origin, name.to_string())) {
+            if let Some(count) = usage.get_mut(&(origin, name.to_vstring())) {
                 *count += 1;
             }
         }
@@ -697,9 +687,9 @@ fn find_unused_imports(file_infos: &HashMap<PathBuf, FileInfo>) -> Vec<UnusedImp
 
         for imp in &info.imports {
             let names = match &imp.symbols {
-                ImportedSymbols::Default(name) => vec![name.clone()],
+                ImportedSymbols::Default(name) => vvec![name.clone()],
                 ImportedSymbols::Named(names) => names.clone(),
-                ImportedSymbols::Namespace(name) => vec![name.clone()],
+                ImportedSymbols::Namespace(name) => vvec![name.clone()],
                 ImportedSymbols::SideEffect => continue,
             };
 
@@ -789,18 +779,18 @@ mod tests {
 
     #[test]
     fn dead_code_error_display() {
-        let err = DeadCodeError::NoSourceFiles("no files".to_string());
-        assert_eq!(format!("{err}"), "no files");
+        let err = DeadCodeError::NoSourceFiles(crate::vstr!("no files"));
+        assert_eq!(crate::vformat!("{err}"), "no files");
 
-        let err = DeadCodeError::Io(io::Error::new(io::ErrorKind::NotFound, "gone"));
-        assert!(format!("{err}").contains("IO error"));
+        let err = DeadCodeError::Io(io::IoError::new(io::IoErrorKind::NotFound, "gone"));
+        assert!(crate::vformat!("{err}").contains("IO error"));
     }
 
     #[test]
     fn detect_entry_points_from_package_json() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_entry_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -811,17 +801,17 @@ mod tests {
         .unwrap();
 
         let entries = detect_entry_points(&dir).unwrap();
-        assert!(entries.contains(&"src/index.js".to_string()));
-        assert!(entries.contains(&"src/index.mjs".to_string()));
+        assert!(entries.contains(&crate::vstr!("src/index.js")));
+        assert!(entries.contains(&crate::vstr!("src/index.mjs")));
 
         let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn detect_no_source_files() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_empty_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -834,9 +824,9 @@ mod tests {
 
     #[test]
     fn detect_unused_file() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_unused_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -845,20 +835,22 @@ mod tests {
         fs::write(dir.join("used.ts"), "export const foo = 1;").unwrap();
         fs::write(dir.join("unused.ts"), "export const bar = 2;").unwrap();
 
-        let result = detect(&dir, &["index.ts".to_string()]).unwrap();
-        assert!(result
-            .unused_files
-            .iter()
-            .any(|f| f.file_name().unwrap() == "unused.ts"));
+        let result = detect(&dir, &[crate::vstr!("index.ts")]).unwrap();
+        assert!(
+            result
+                .unused_files
+                .iter()
+                .any(|f| f.file_name().unwrap() == "unused.ts")
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn detect_unused_import_heuristic() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_unimp_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -874,11 +866,8 @@ mod tests {
         )
         .unwrap();
 
-        let result = detect(&dir, &["index.ts".to_string()]).unwrap();
-        assert!(result
-            .unused_imports
-            .iter()
-            .any(|u| u.name == "notUsed"));
+        let result = detect(&dir, &[crate::vstr!("index.ts")]).unwrap();
+        assert!(result.unused_imports.iter().any(|u| u.name == "notUsed"));
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -896,9 +885,9 @@ mod tests {
 
     #[test]
     fn config_files_excluded_from_scan() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_config_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
@@ -907,10 +896,12 @@ mod tests {
         fs::write(dir.join("jest.config.ts"), "export default {};").unwrap();
 
         let result = detect(&dir, &[]).unwrap();
-        assert!(!result
-            .unused_exports
-            .iter()
-            .any(|e| e.file.to_string_lossy().contains("jest.config")));
+        assert!(
+            !result
+                .unused_exports
+                .iter()
+                .any(|e| e.file.contains("jest.config"))
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -923,8 +914,7 @@ mod tests {
 
     #[test]
     fn decorated_export_multiline() {
-        let source =
-            "@Module({\n  imports: [FooModule],\n  providers: [FooService],\n})\nexport class AppModule {}";
+        let source = "@Module({\n  imports: [FooModule],\n  providers: [FooService],\n})\nexport class AppModule {}";
         assert!(is_decorated_export(source, 5));
     }
 
@@ -948,9 +938,9 @@ mod tests {
 
     #[test]
     fn tsconfig_alias_resolution() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_alias_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(dir.join("src/utils")).unwrap();
@@ -965,30 +955,20 @@ mod tests {
             "import { helper } from \"@/utils/helper\";",
         )
         .unwrap();
-        fs::write(
-            dir.join("src/utils/helper.ts"),
-            "export const helper = 1;",
-        )
-        .unwrap();
+        fs::write(dir.join("src/utils/helper.ts"), "export const helper = 1;").unwrap();
 
-        let result = detect(&dir, &["src/index.ts".to_string()]).unwrap();
-        assert!(!result
-            .unused_files
-            .iter()
-            .any(|f| f.to_string_lossy().contains("helper")));
-        assert!(!result
-            .unused_exports
-            .iter()
-            .any(|e| e.name == "helper"));
+        let result = detect(&dir, &[crate::vstr!("src/index.ts")]).unwrap();
+        assert!(!result.unused_files.iter().any(|f| f.contains("helper")));
+        assert!(!result.unused_exports.iter().any(|e| e.name == "helper"));
 
         let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn tsconfig_extends_resolution() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_extends_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(dir.join("src")).unwrap();
@@ -1013,9 +993,9 @@ mod tests {
 
     #[test]
     fn barrel_reexport_counts_as_used() {
-        let dir = std::env::temp_dir().join(format!(
+        let dir = crate::core::volkiwithstds::env::temp_dir().join(&crate::vformat!(
             "volki_deadcode_barrel_{}",
-            std::process::id()
+            crate::core::volkiwithstds::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(dir.join("lib")).unwrap();
@@ -1023,11 +1003,7 @@ mod tests {
         // actual.ts defines the export
         fs::write(dir.join("lib/actual.ts"), "export const foo = 1;").unwrap();
         // barrel re-exports everything
-        fs::write(
-            dir.join("lib/index.ts"),
-            "export * from \"./actual\";",
-        )
-        .unwrap();
+        fs::write(dir.join("lib/index.ts"), "export * from \"./actual\";").unwrap();
         // consumer imports through barrel
         fs::write(
             dir.join("index.ts"),
@@ -1035,7 +1011,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = detect(&dir, &["index.ts".to_string()]).unwrap();
+        let result = detect(&dir, &[crate::vstr!("index.ts")]).unwrap();
         // foo should NOT be reported as unused
         assert!(
             !result.unused_exports.iter().any(|e| e.name == "foo"),

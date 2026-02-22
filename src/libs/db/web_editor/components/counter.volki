@@ -1,0 +1,19 @@
+//! Counter section template — the counter UI layout.
+//! Note: the Client/Component functions (counter, on_increment, on_decrement)
+//! stay in page.volki because they compile to a per-file WASM module.
+
+use crate::libs::web::prelude::*;
+
+pub fn CounterSection(show_help: bool, dark: bool) -> Fragment {
+    <div class="mt-6 p-5 bg-[#161b22] border border-[#30363d] rounded">
+        <h3 class="text-sm font-semibold mb-3">"Counter"</h3>
+        {show_help && <p class="text-sm text-gray-400 mb-3">"Click the buttons to increment or decrement"</p>}
+        <div class="flex items-center gap-4">
+            <button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-sm font-medium border border-[#30363d] bg-[#161b22] text-[#e6edf3] hover:bg-[#30363d]" onclick={on_decrement}>"-"</button>
+            {dark
+                ? <span id="counter-value" class="text-3xl font-bold min-w-[60px] text-center font-mono text-blue-400 bg-blue-500/10 rounded px-3 py-1">"0"</span>
+                : <span id="counter-value" class="text-3xl font-bold min-w-[60px] text-center font-mono">"0"</span>}
+            <button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-sm font-medium border border-blue-500/30 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25" onclick={on_increment}>"+"</button>
+        </div>
+    </div>
+}

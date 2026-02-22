@@ -1,3 +1,5 @@
+use crate::core::volkiwithstds::collections::{String, Vec};
+
 /// Known Postgres type OIDs for text-format conversion.
 const OID_BOOL: u32 = 16;
 const OID_BYTEA: u32 = 17;
@@ -29,15 +31,15 @@ impl Value {
             },
             OID_INT2 | OID_INT4 | OID_INT8 => match text.parse::<i64>() {
                 Ok(n) => Value::Int(n),
-                Err(_) => Value::Text(text.to_string()),
+                Err(_) => Value::Text(String::from(text)),
             },
             OID_FLOAT4 | OID_FLOAT8 => match text.parse::<f64>() {
                 Ok(n) => Value::Float(n),
-                Err(_) => Value::Text(text.to_string()),
+                Err(_) => Value::Text(String::from(text)),
             },
             OID_BYTEA => Value::Bytes(decode_bytea_hex(text)),
-            OID_TEXT | OID_VARCHAR => Value::Text(text.to_string()),
-            _ => Value::Text(text.to_string()),
+            OID_TEXT | OID_VARCHAR => Value::Text(String::from(text)),
+            _ => Value::Text(String::from(text)),
         }
     }
 }
@@ -141,6 +143,7 @@ impl Row {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vvec;
 
     #[test]
     fn value_from_text_bool() {
@@ -159,10 +162,7 @@ mod tests {
 
     #[test]
     fn value_from_text_int_invalid() {
-        assert_eq!(
-            Value::from_text("abc", OID_INT4),
-            Value::Text("abc".into())
-        );
+        assert_eq!(Value::from_text("abc", OID_INT4), Value::Text("abc".into()));
     }
 
     #[test]
@@ -187,7 +187,7 @@ mod tests {
     fn value_from_text_bytea() {
         assert_eq!(
             Value::from_text("\\xDEAD", OID_BYTEA),
-            Value::Bytes(vec![0xDE, 0xAD])
+            Value::Bytes(vvec![0xDE, 0xAD])
         );
     }
 
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn row_accessors() {
-        let cols = vec![
+        let cols = vvec![
             Column {
                 name: "id".into(),
                 type_oid: OID_INT4,
@@ -215,7 +215,7 @@ mod tests {
                 type_oid: OID_BOOL,
             },
         ];
-        let vals = vec![
+        let vals = vvec![
             Value::Int(1),
             Value::Text("alice".into()),
             Value::Bool(true),
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn row_get_by_name() {
-        let cols = vec![
+        let cols = vvec![
             Column {
                 name: "x".into(),
                 type_oid: OID_INT4,
@@ -241,7 +241,7 @@ mod tests {
                 type_oid: OID_TEXT,
             },
         ];
-        let vals = vec![Value::Int(10), Value::Text("hi".into())];
+        let vals = vvec![Value::Int(10), Value::Text("hi".into())];
         let row = Row::new(cols, vals);
 
         assert_eq!(row.get_by_name("x"), Some(&Value::Int(10)));
@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn row_out_of_bounds() {
-        let row = Row::new(vec![], vec![]);
+        let row = Row::new(vvec![], vvec![]);
         assert!(row.is_empty());
         assert_eq!(row.get_value(0), None);
         assert_eq!(row.get_str(0), None);
@@ -262,11 +262,11 @@ mod tests {
 
     #[test]
     fn row_type_mismatch_returns_none() {
-        let cols = vec![Column {
+        let cols = vvec![Column {
             name: "val".into(),
             type_oid: OID_INT4,
         }];
-        let vals = vec![Value::Int(42)];
+        let vals = vvec![Value::Int(42)];
         let row = Row::new(cols, vals);
 
         assert_eq!(row.get_str(0), None);
@@ -276,8 +276,8 @@ mod tests {
 
     #[test]
     fn decode_bytea_hex_basic() {
-        assert_eq!(decode_bytea_hex("\\xCAFE"), vec![0xCA, 0xFE]);
-        assert_eq!(decode_bytea_hex("\\x00FF"), vec![0x00, 0xFF]);
-        assert_eq!(decode_bytea_hex("\\x"), vec![]);
+        assert_eq!(decode_bytea_hex("\\xCAFE"), vvec![0xCA, 0xFE]);
+        assert_eq!(decode_bytea_hex("\\x00FF"), vvec![0x00, 0xFF]);
+        assert_eq!(decode_bytea_hex("\\x"), vvec![]);
     }
 }

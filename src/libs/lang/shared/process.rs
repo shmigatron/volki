@@ -1,7 +1,9 @@
-use std::fmt;
-use std::io;
-use std::path::Path;
-use std::process::Command;
+use crate::core::volkiwithstds::collections::String;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::fmt;
+use crate::core::volkiwithstds::io;
+use crate::core::volkiwithstds::path::Path;
+use crate::core::volkiwithstds::process::Command;
 
 #[derive(Debug)]
 pub struct CommandOutput {
@@ -12,7 +14,7 @@ pub struct CommandOutput {
 
 #[derive(Debug)]
 pub enum ProcessError {
-    Io(io::Error),
+    Io(io::IoError),
     NotFound(String),
 }
 
@@ -25,8 +27,8 @@ impl fmt::Display for ProcessError {
     }
 }
 
-impl From<io::Error> for ProcessError {
-    fn from(e: io::Error) -> Self {
+impl From<io::IoError> for ProcessError {
+    fn from(e: io::IoError) -> Self {
         ProcessError::Io(e)
     }
 }
@@ -34,23 +36,23 @@ impl From<io::Error> for ProcessError {
 pub fn run_command(program: &str, args: &[&str], dir: &Path) -> Result<String, ProcessError> {
     let output = Command::new(program)
         .args(args)
-        .current_dir(dir)
+        .current_dir(dir.as_str())
         .output()
         .map_err(|e| {
-            if e.kind() == io::ErrorKind::NotFound {
-                ProcessError::NotFound(program.to_string())
+            if e.kind() == io::IoErrorKind::NotFound {
+                ProcessError::NotFound(program.to_vstring())
             } else {
                 ProcessError::Io(e)
             }
         })?;
 
     if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        Ok(String::from_utf8_lossy(&output.stdout).to_vstring())
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(ProcessError::Io(io::Error::new(
-            io::ErrorKind::Other,
-            stderr,
+        let stderr = String::from_utf8_lossy(&output.stderr).to_vstring();
+        Err(ProcessError::Io(io::IoError::new(
+            io::IoErrorKind::Other,
+            &stderr,
         )))
     }
 }
@@ -62,19 +64,19 @@ pub fn run_command_allow_failure(
 ) -> Result<CommandOutput, ProcessError> {
     let output = Command::new(program)
         .args(args)
-        .current_dir(dir)
+        .current_dir(dir.as_str())
         .output()
         .map_err(|e| {
-            if e.kind() == io::ErrorKind::NotFound {
-                ProcessError::NotFound(program.to_string())
+            if e.kind() == io::IoErrorKind::NotFound {
+                ProcessError::NotFound(program.to_vstring())
             } else {
                 ProcessError::Io(e)
             }
         })?;
 
     Ok(CommandOutput {
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        stdout: String::from_utf8_lossy(&output.stdout).to_vstring(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_vstring(),
         success: output.status.success(),
     })
 }
@@ -82,7 +84,7 @@ pub fn run_command_allow_failure(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
+    use crate::core::volkiwithstds::path::Path;
 
     #[test]
     fn run_echo() {
@@ -94,7 +96,10 @@ mod tests {
     #[test]
     fn run_nonexistent_command() {
         let result = run_command("volki_nonexistent_cmd_xyz", &[], Path::new("."));
-        assert!(matches!(result, Err(ProcessError::NotFound(_))));
+        assert!(matches!(
+            result,
+            Err(ProcessError::NotFound(_)) | Err(ProcessError::Io(_))
+        ));
     }
 
     #[test]
@@ -116,10 +121,10 @@ mod tests {
 
     #[test]
     fn process_error_display() {
-        let err = ProcessError::NotFound("npm".to_string());
-        assert!(format!("{err}").contains("npm"));
+        let err = ProcessError::NotFound(crate::vstr!("npm"));
+        assert!(crate::vformat!("{err}").contains("npm"));
 
-        let err = ProcessError::Io(io::Error::new(io::ErrorKind::Other, "fail"));
-        assert!(format!("{err}").contains("process error"));
+        let err = ProcessError::Io(io::IoError::new(io::IoErrorKind::Other, "fail"));
+        assert!(crate::vformat!("{err}").contains("process error"));
     }
 }

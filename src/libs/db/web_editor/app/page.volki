@@ -1,0 +1,191 @@
+//! GET / — main index page for the DB web editor.
+
+use crate::libs::db::web_editor::components::sidebar::SidebarContent;
+use crate::libs::db::web_editor::components::counter::CounterSection;
+use crate::libs::db::web_editor::components::data_table::SampleTable;
+use crate::libs::web::prelude::*;
+
+pub fn metadata(_req: &Request) -> Metadata {
+    Metadata::new()
+    .title("volki db editor")
+        .description("Web-based database table editor")
+        .og_title("volki db editor")
+        .og_description("Manage your database tables from the browser")
+        .og_type("website")
+}
+
+pub fn page(_req: &Request) -> Html {
+    <Stylesheet href="/styles.css" />
+    <div class="flex-shrink-0 min-h-screen w-[260px] bg-[#161b22] border-r border-[#30363d] py-5">
+        <SidebarContent />
+    </div>
+    <div class="flex-1 overflow-x-auto p-8">
+        <MainContent />
+    </div>
+}
+
+fn MainContent() -> Fragment {
+    <div class="mb-5 text-sm text-gray-400">
+        <a class="text-blue-400 no-underline" href="/">"public"</a>
+        <span>" / "</span>
+        <span>"users"</span>
+    </div>
+    <div class="flex items-center gap-4 mb-6">
+        <h2 class="text-2xl font-semibold">"users"</h2>
+    </div>
+    <Toolbar />
+    <SampleTable />
+    <StatusBar />
+    <ConfirmDialog />
+    <CounterSection show_help={true} dark={false} />
+}
+
+fn Toolbar() -> Fragment {
+    <div class="flex items-center gap-2 mb-4 p-3 px-4 bg-[#161b22] border border-[#30363d] rounded">
+        <input
+            id="filter-input"
+            class="w-[260px] px-3 py-1.5 bg-[#0d1117] border border-[#30363d] rounded text-sm text-[#e6edf3] outline-none focus:border-blue-400"
+            type="text"
+            placeholder="Filter rows..."
+            oninput={filter_rows}
+        />
+        <div class="flex-1"></div>
+        <a
+            id="btn-insert"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-sm font-medium border border-blue-500/30 bg-blue-500/15 text-blue-400 no-underline hover:bg-blue-500/25"
+            href="#"
+            onclick={insert_row}
+        >
+            "+ Insert row"
+        </a>
+        <a
+            id="btn-delete"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-sm font-medium border border-red-500/30 text-red-400 no-underline hover:bg-red-500/10"
+            href="#"
+            onclick={delete_selected}
+        >
+            "Delete selected"
+        </a>
+    </div>
+}
+
+fn StatusBar() -> Fragment {
+    <div class="flex items-center gap-4 mt-4 px-4 py-2 bg-[#161b22] border border-[#30363d] rounded text-xs text-gray-400">
+        <div id="status-dot" class="w-2 h-2 rounded-full bg-green-500"></div>
+        <span id="conn-status">"Connected to PostgreSQL 16.2"</span>
+        <div class="flex-1"></div>
+        <span id="row-count">"12 rows"</span>
+        <span>"5 columns"</span>
+    </div>
+}
+
+fn ConfirmDialog() -> Fragment {
+    <div id="delete-dialog" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50">
+        <div class="bg-[#161b22] border border-[#30363d] rounded p-6 w-[420px] max-w-[90vw]">
+            <h3 class="text-base font-semibold mb-2">"Confirm deletion"</h3>
+            <p class="text-sm text-gray-400 leading-normal mb-5">"Are you sure you want to delete the selected row(s)? This cannot be undone."</p>
+            <div class="flex gap-3 justify-end">
+                <a class="inline-flex items-center justify-center min-w-[80px] px-3.5 py-1.5 rounded text-sm font-medium border border-[#30363d] bg-[#161b22] text-[#e6edf3] no-underline hover:bg-[#30363d]" href="#" onclick={cancel_delete}>"Cancel"</a>
+                <a class="inline-flex items-center justify-center min-w-[80px] px-3.5 py-1.5 rounded text-sm font-medium border border-red-500/30 text-red-400 no-underline hover:bg-red-500/10" href="#" onclick={confirm_delete}>"Delete"</a>
+            </div>
+        </div>
+    </div>
+}
+
+// ── Components (state + render) ─────────────────────────────────────
+// Each Component owns state via use_state and re-renders when state changes.
+// Like React: state change → component re-renders → DOM updates.
+
+pub fn delete_dialog() -> Component {
+    let (delete_dialog_visible, set_delete_dialog_visible) = use_state(0_i32);
+    let overlay = dom::query("#delete-dialog");
+    if delete_dialog_visible == 1 {
+        overlay.remove_class("hidden");
+    } else {
+        overlay.add_class("hidden");
+    }
+    let _ = set_delete_dialog_visible;
+}
+
+// status: 0 = connected, 1 = deleting, 2 = deleted
+pub fn status_display() -> Component {
+    let (status_mode, set_status_mode) = use_state(0_i32);
+    let status = dom::query("#conn-status");
+    let dot = dom::query("#status-dot");
+    if status_mode == 0 {
+        status.set_text("Connected to PostgreSQL 16.2");
+        dot.remove_class("bg-yellow-500");
+        dot.add_class("bg-green-500");
+    } else if status_mode == 1 {
+        status.set_text("Deleting...");
+        dot.remove_class("bg-green-500");
+        dot.add_class("bg-yellow-500");
+    } else {
+        status.set_text("Connected to PostgreSQL 16.2");
+        dot.remove_class("bg-yellow-500");
+        dot.add_class("bg-green-500");
+    }
+    let _ = set_status_mode;
+}
+
+// inserting: 0 = idle, 1 = loading
+pub fn insert_button() -> Component {
+    let (inserting, set_inserting) = use_state(0_i32);
+    let btn = dom::query("#btn-insert");
+    if inserting == 1 {
+        btn.add_class("opacity-70");
+    } else {
+        btn.remove_class("opacity-70");
+    }
+    let _ = set_inserting;
+}
+
+pub fn counter() -> Component {
+    let (counter_count, set_counter_count) = use_state(0_i32);
+    let el = dom::query("#counter-value");
+    el.set_text(state::fmt_i32(counter_count));
+    let _ = set_counter_count;
+}
+
+// ── Event handlers (update state only) ──────────────────────────────
+// Like React: handlers set state, never touch DOM directly.
+
+pub fn filter_rows() -> Client {
+    let input = dom::query("#filter-input");
+    let term = input.get_value();
+    dom::log(term);
+}
+
+pub fn toggle_select_all(checked: bool) -> Client {
+    dom::log("select-all toggled");
+}
+
+pub fn delete_selected() -> Client {
+    set_delete_dialog_visible(1);
+}
+
+pub fn cancel_delete() -> Client {
+    set_delete_dialog_visible(0);
+}
+
+pub fn confirm_delete() -> Client {
+    set_delete_dialog_visible(0);
+    set_status_mode(1);
+    dom::log("delete confirmed");
+}
+
+pub fn insert_row() -> Client {
+    set_inserting(1);
+    dom::log("insert-row clicked");
+}
+
+pub fn on_increment() -> Client {
+    let counter_count = get_counter_count();
+    set_counter_count(counter_count + 1);
+}
+
+pub fn on_decrement() -> Client {
+    let counter_count = get_counter_count();
+    dom::log(counter_count);
+    set_counter_count(counter_count - 1);
+}

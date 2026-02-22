@@ -1,0 +1,160 @@
+/// Page Metadata
+///
+/// The `Metadata` struct provides a builder API for setting HTML `<head>` metadata
+/// including SEO, Open Graph, Twitter Cards, and document configuration.
+
+/// Page metadata builder. Provides SEO, social sharing, and document configuration.
+///
+/// Created with `Metadata::new()` which applies sensible defaults (UTF-8 charset,
+/// responsive viewport). Use `.no_defaults()` to start with a blank slate.
+///
+/// ```
+/// let meta = Metadata::new()
+///     .title("My Page")
+///     .description("A description of the page")
+///     .og_title("My Page")
+///     .og_image("https://example.com/image.png")
+///     .robots(Robots::new().no_index());
+/// ```
+///
+/// Builder methods:
+///   - `.title(v: &str) -> Self` — Page title (appears in browser tab)
+///   - `.description(v: &str) -> Self` — Meta description for SEO
+///   - `.keywords(v: &[&str]) -> Self` — Meta keywords
+///   - `.charset(v: &str) -> Self` — Character encoding (default: "utf-8")
+///   - `.viewport(v: &str) -> Self` — Viewport meta tag (default: "width=device-width, initial-scale=1")
+///   - `.color_scheme(v: &str) -> Self` — Preferred color scheme ("light", "dark", "light dark")
+///   - `.theme_color(v: &str) -> Self` — Theme color for browser chrome
+///   - `.canonical(v: &str) -> Self` — Canonical URL
+///   - `.robots(r: Robots) -> Self` — Robots directives
+///   - `.og_title(v: &str) -> Self` — Open Graph title
+///   - `.og_description(v: &str) -> Self` — Open Graph description
+///   - `.og_type(v: &str) -> Self` — Open Graph type ("website", "article", etc.)
+///   - `.og_url(v: &str) -> Self` — Open Graph URL
+///   - `.og_image(v: &str) -> Self` — Open Graph image URL
+///   - `.og_site_name(v: &str) -> Self` — Open Graph site name
+///   - `.og_locale(v: &str) -> Self` — Open Graph locale (e.g. "en_US")
+///   - `.twitter_card(v: &str) -> Self` — Twitter card type ("summary", "summary_large_image")
+///   - `.twitter_title(v: &str) -> Self` — Twitter card title
+///   - `.twitter_description(v: &str) -> Self` — Twitter card description
+///   - `.twitter_image(v: &str) -> Self` — Twitter card image URL
+///   - `.twitter_site(v: &str) -> Self` — Twitter @username for the site
+///   - `.favicon(v: &str) -> Self` — Favicon URL
+///   - `.apple_touch_icon(v: &str) -> Self` — Apple touch icon URL
+///   - `.author(v: &str) -> Self` — Content author
+///   - `.generator(v: &str) -> Self` — Generator software name
+///   - `.custom(name: &str, content: &str) -> Self` — Custom meta tag
+///   - `.custom_node(node: HtmlNode) -> Self` — Custom head node
+///   - `.no_defaults() -> Self` — Strip default charset/viewport
+///   - `.validate() -> Vec<MetadataWarning>` — Check for common issues
+///   - `.render_head_nodes() -> Vec<HtmlNode>` — Generate head elements
+///   - `.render_head_tags() -> String` — Render head HTML string
+pub struct Metadata {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub keywords: Option<Vec<String>>,
+    pub charset: Option<String>,
+    pub viewport: Option<String>,
+    pub color_scheme: Option<String>,
+    pub theme_color: Option<String>,
+    pub canonical: Option<String>,
+    pub robots: Option<Robots>,
+    pub og_title: Option<String>,
+    pub og_description: Option<String>,
+    pub og_type: Option<String>,
+    pub og_url: Option<String>,
+    pub og_image: Option<String>,
+    pub og_site_name: Option<String>,
+    pub og_locale: Option<String>,
+    pub twitter_card: Option<String>,
+    pub twitter_title: Option<String>,
+    pub twitter_description: Option<String>,
+    pub twitter_image: Option<String>,
+    pub twitter_site: Option<String>,
+    pub favicon: Option<String>,
+    pub apple_touch_icon: Option<String>,
+    pub author: Option<String>,
+    pub generator: Option<String>,
+    pub custom_meta: Vec<(String, String)>,
+    pub custom_head: Vec<HtmlNode>,
+}
+
+pub fn Metadata::new() -> Self
+pub fn Metadata::no_defaults(mut self) -> Self
+pub fn Metadata::title(mut self, v: &str) -> Self
+pub fn Metadata::description(mut self, v: &str) -> Self
+pub fn Metadata::keywords(mut self, v: &[&str]) -> Self
+pub fn Metadata::charset(mut self, v: &str) -> Self
+pub fn Metadata::viewport(mut self, v: &str) -> Self
+pub fn Metadata::color_scheme(mut self, v: &str) -> Self
+pub fn Metadata::theme_color(mut self, v: &str) -> Self
+pub fn Metadata::canonical(mut self, v: &str) -> Self
+pub fn Metadata::robots(mut self, r: Robots) -> Self
+pub fn Metadata::og_title(mut self, v: &str) -> Self
+pub fn Metadata::og_description(mut self, v: &str) -> Self
+pub fn Metadata::og_type(mut self, v: &str) -> Self
+pub fn Metadata::og_url(mut self, v: &str) -> Self
+pub fn Metadata::og_image(mut self, v: &str) -> Self
+pub fn Metadata::og_site_name(mut self, v: &str) -> Self
+pub fn Metadata::og_locale(mut self, v: &str) -> Self
+pub fn Metadata::twitter_card(mut self, v: &str) -> Self
+pub fn Metadata::twitter_title(mut self, v: &str) -> Self
+pub fn Metadata::twitter_description(mut self, v: &str) -> Self
+pub fn Metadata::twitter_image(mut self, v: &str) -> Self
+pub fn Metadata::twitter_site(mut self, v: &str) -> Self
+pub fn Metadata::favicon(mut self, v: &str) -> Self
+pub fn Metadata::apple_touch_icon(mut self, v: &str) -> Self
+pub fn Metadata::author(mut self, v: &str) -> Self
+pub fn Metadata::generator(mut self, v: &str) -> Self
+pub fn Metadata::custom(mut self, name: &str, content: &str) -> Self
+pub fn Metadata::custom_node(mut self, node: HtmlNode) -> Self
+pub fn Metadata::validate(&self) -> Vec<MetadataWarning>
+pub fn Metadata::render_head_nodes(&self) -> Vec<HtmlNode>
+pub fn Metadata::render_head_tags(&self) -> String
+
+/// Type alias for metadata handler functions.
+///
+/// ```
+/// fn get_metadata(req: &Request) -> Metadata {
+///     Metadata::new().title("Page Title")
+/// }
+/// ```
+pub type MetadataFn = fn(&Request) -> Metadata
+
+/// Robots meta directive builder.
+///
+/// ```
+/// let robots = Robots::new().no_index().no_follow();
+/// ```
+///
+/// Builder methods:
+///   - `.no_index() -> Self` — Prevent search engine indexing
+///   - `.no_follow() -> Self` — Prevent following links
+///   - `.no_archive() -> Self` — Prevent cached copies
+///   - `.no_snippet() -> Self` — Prevent showing text snippets
+pub struct Robots {
+    pub index: bool,
+    pub follow: bool,
+    pub no_archive: bool,
+    pub no_snippet: bool,
+}
+
+pub fn Robots::new() -> Self
+pub fn Robots::no_index(mut self) -> Self
+pub fn Robots::no_follow(mut self) -> Self
+pub fn Robots::no_archive(mut self) -> Self
+pub fn Robots::no_snippet(mut self) -> Self
+
+/// Warnings produced by `Metadata::validate()`.
+pub enum MetadataWarning {
+    /// Open Graph type not recognized (e.g. not "website", "article", etc.)
+    UnknownOgType(String),
+    /// Twitter card type not recognized
+    UnknownTwitterCard(String),
+    /// Partial Open Graph data (e.g. og_image without og_title)
+    PartialOg(String),
+    /// Partial Twitter card data
+    PartialTwitter(String),
+    /// A metadata field was set to an empty string
+    EmptyField(String),
+}

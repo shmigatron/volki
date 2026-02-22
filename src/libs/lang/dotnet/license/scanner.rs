@@ -1,12 +1,14 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
-use crate::libs::lang::shared::license::parsers::xml_extract::{
-    parse_csproj_package_references, parse_nuspec_license,
-};
 use crate::libs::lang::shared::license::scan_util::{finalize_scan, home_dir};
 use crate::libs::lang::shared::license::types::{
     LicenseCategory, LicenseError, LicenseSource, PackageLicense, ScanConfig, ScanResult,
+};
+use crate::libs::lang::shared::license::xml::{
+    parse_csproj_package_references, parse_nuspec_license,
 };
 
 pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
@@ -14,16 +16,16 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
 
     let csproj_files = find_csproj_files(root);
     if csproj_files.is_empty() {
-        return Err(LicenseError::NoManifest(
-            "No .csproj file found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(crate::vstr!(
+            "No .csproj file found in project directory"
+        )));
     }
 
     let project_name = csproj_files
         .first()
         .and_then(|p| p.file_stem())
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unnamed".to_string());
+        .map(|s| s.to_vstring())
+        .unwrap_or_else(|| crate::vstr!("unnamed"));
 
     // NuGet cache: ~/.nuget/packages/
     let nuget_cache = home_dir().map(|h| h.join(".nuget").join("packages"));
@@ -54,14 +56,14 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     Ok(finalize_scan(project_name, packages, config))
 }
 
-fn find_csproj_files(root: &Path) -> Vec<std::path::PathBuf> {
+fn find_csproj_files(root: &Path) -> Vec<crate::core::volkiwithstds::path::PathBuf> {
     let mut files = Vec::new();
     if let Ok(entries) = fs::read_dir(root) {
         for entry in entries.flatten() {
             let path = entry.path();
             if let Some(ext) = path.extension() {
                 if ext == "csproj" {
-                    files.push(path);
+                    files.push(path.to_path_buf());
                 }
             }
         }
@@ -72,14 +74,14 @@ fn find_csproj_files(root: &Path) -> Vec<std::path::PathBuf> {
 fn find_nuget_license(
     name: &str,
     version: &str,
-    nuget_cache: &Option<std::path::PathBuf>,
+    nuget_cache: &Option<crate::core::volkiwithstds::path::PathBuf>,
 ) -> (String, LicenseSource) {
     let Some(cache) = nuget_cache else {
-        return ("UNKNOWN".to_string(), LicenseSource::NotFound);
+        return (crate::vstr!("UNKNOWN"), LicenseSource::NotFound);
     };
 
     if !cache.exists() {
-        return ("UNKNOWN".to_string(), LicenseSource::NotFound);
+        return (crate::vstr!("UNKNOWN"), LicenseSource::NotFound);
     }
 
     // NuGet cache uses lowercase package names
@@ -87,10 +89,10 @@ fn find_nuget_license(
     let pkg_dir = cache.join(&lower_name).join(version);
 
     if !pkg_dir.is_dir() {
-        return ("UNKNOWN".to_string(), LicenseSource::NotFound);
+        return (crate::vstr!("UNKNOWN"), LicenseSource::NotFound);
     }
 
-    let nuspec_path = pkg_dir.join(format!("{lower_name}.nuspec"));
+    let nuspec_path = pkg_dir.join(&crate::vformat!("{lower_name}.nuspec"));
     if let Ok(content) = fs::read_to_string(&nuspec_path) {
         if let Some(license) = parse_nuspec_license(&content) {
             return (license, LicenseSource::MetadataFile);
@@ -113,5 +115,5 @@ fn find_nuget_license(
         }
     }
 
-    ("UNKNOWN".to_string(), LicenseSource::NotFound)
+    (crate::vstr!("UNKNOWN"), LicenseSource::NotFound)
 }

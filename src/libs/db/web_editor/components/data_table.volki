@@ -1,0 +1,116 @@
+//! Sample data table for the DB editor.
+
+use crate::libs::web::prelude::*;
+
+pub fn SampleTable() -> Fragment {
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th class="row-checkbox"><input type="checkbox" data-volki-onchange="toggle_select_all" /></th>
+                <th>"id"</th>
+                <th>"name"</th>
+                <th>"email"</th>
+                <th>"role"</th>
+                <th>"created_at"</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"1"</td>
+                <td>"Alice Johnson"</td>
+                <td>"alice@example.com"</td>
+                <td>"admin"</td>
+                <td class="cell-number">"2024-01-15 09:23:11"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"2"</td>
+                <td>"Bob Smith"</td>
+                <td>"bob@example.com"</td>
+                <td>"user"</td>
+                <td class="cell-number">"2024-02-03 14:07:55"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"3"</td>
+                <td>"Carol Williams"</td>
+                <td>"carol@example.com"</td>
+                <td>"editor"</td>
+                <td class="cell-number">"2024-02-18 11:44:02"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"4"</td>
+                <td>"David Brown"</td>
+                <td>"david@example.com"</td>
+                <td>"user"</td>
+                <td class="cell-number">"2024-03-01 08:15:30"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"5"</td>
+                <td>"Eve Davis"</td>
+                <td>"eve@example.com"</td>
+                <td>"admin"</td>
+                <td class="cell-number">"2024-03-12 16:58:19"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"6"</td>
+                <td>"Frank Miller"</td>
+                <td>"frank@example.com"</td>
+                <td>"user"</td>
+                <td class="cell-number">"2024-04-05 10:32:47"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"7"</td>
+                <td>"Grace Wilson"</td>
+                <td>"grace@example.com"</td>
+                <td>"editor"</td>
+                <td class="cell-number">"2024-04-20 13:21:08"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"8"</td>
+                <td>"Henry Moore"</td>
+                <td>"henry@example.com"</td>
+                <td>"user"</td>
+                <td class="cell-number">"2024-05-11 07:45:33"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"9"</td>
+                <td>"Ivy Taylor"</td>
+                <td>"ivy@example.com"</td>
+                <td>"user"</td>
+                <td class="cell-number">"2024-06-02 15:12:56"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"10"</td>
+                <td>"Jack Anderson"</td>
+                <td>"jack@example.com"</td>
+                <td>"admin"</td>
+                <td class="cell-number">"2024-06-28 09:08:41"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"11"</td>
+                <td>"Karen Thomas"</td>
+                <td>"karen@example.com"</td>
+                <td>"user"</td>
+                <td class="cell-number">"2024-07-14 12:37:22"</td>
+            </tr>
+            <tr>
+                <td class="row-checkbox"><input type="checkbox" /></td>
+                <td class="cell-pk">"12"</td>
+                <td>"Leo Jackson"</td>
+                <td>"leo@example.com"</td>
+                <td>"editor"</td>
+                <td class="cell-number">"2024-08-01 18:03:15"</td>
+            </tr>
+        </tbody>
+    </table>
+}

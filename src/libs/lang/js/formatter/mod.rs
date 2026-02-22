@@ -4,7 +4,9 @@ pub mod plugin_bridge;
 pub mod tokenizer;
 pub mod walker;
 
-use std::path::{Path, PathBuf};
+use crate::core::volkiwithstds::collections::{String, ToString, Vec};
+use crate::core::volkiwithstds::path::{Path, PathBuf};
+use crate::vvec;
 
 use config::FormatConfig;
 use formatter::format_source;
@@ -30,9 +32,9 @@ pub fn format(root: &Path, config: &FormatConfig, plugins: Option<&PluginRegistr
     let files = match walk_files(root, &walk_config) {
         Ok(f) => f,
         Err(e) => {
-            return vec![FileResult {
+            return vvec![FileResult {
                 path: root.to_path_buf(),
-                status: FileStatus::Error(e.to_string()),
+                status: FileStatus::Error(e.to_vstring()),
             }];
         }
     };
@@ -45,9 +47,9 @@ pub fn check(root: &Path, config: &FormatConfig, plugins: Option<&PluginRegistry
     let files = match walk_files(root, &walk_config) {
         Ok(f) => f,
         Err(e) => {
-            return vec![FileResult {
+            return vvec![FileResult {
                 path: root.to_path_buf(),
-                status: FileStatus::Error(e.to_string()),
+                status: FileStatus::Error(e.to_vstring()),
             }];
         }
     };
@@ -56,11 +58,11 @@ pub fn check(root: &Path, config: &FormatConfig, plugins: Option<&PluginRegistry
 }
 
 fn format_file(path: &Path, config: &FormatConfig, plugins: Option<&PluginRegistry>) -> FileResult {
-    let source = match std::fs::read_to_string(path) {
+    let source = match crate::core::volkiwithstds::fs::read_to_string(path) {
         Ok(s) => s,
         Err(e) => return FileResult {
             path: path.to_path_buf(),
-            status: FileStatus::Error(e.to_string()),
+            status: FileStatus::Error(e.to_vstring()),
         },
     };
 
@@ -69,25 +71,25 @@ fn format_file(path: &Path, config: &FormatConfig, plugins: Option<&PluginRegist
             if formatted == source {
                 FileResult { path: path.to_path_buf(), status: FileStatus::Unchanged }
             } else {
-                match std::fs::write(path, &formatted) {
+                match crate::core::volkiwithstds::fs::write(path, &formatted) {
                     Ok(_) => FileResult { path: path.to_path_buf(), status: FileStatus::Changed },
-                    Err(e) => FileResult { path: path.to_path_buf(), status: FileStatus::Error(e.to_string()) },
+                    Err(e) => FileResult { path: path.to_path_buf(), status: FileStatus::Error(e.to_vstring()) },
                 }
             }
         }
         Err(e) => FileResult {
             path: path.to_path_buf(),
-            status: FileStatus::Error(e.to_string()),
+            status: FileStatus::Error(e.to_vstring()),
         },
     }
 }
 
 fn check_file(path: &Path, config: &FormatConfig, plugins: Option<&PluginRegistry>) -> FileResult {
-    let source = match std::fs::read_to_string(path) {
+    let source = match crate::core::volkiwithstds::fs::read_to_string(path) {
         Ok(s) => s,
         Err(e) => return FileResult {
             path: path.to_path_buf(),
-            status: FileStatus::Error(e.to_string()),
+            status: FileStatus::Error(e.to_vstring()),
         },
     };
 
@@ -101,7 +103,7 @@ fn check_file(path: &Path, config: &FormatConfig, plugins: Option<&PluginRegistr
         }
         Err(e) => FileResult {
             path: path.to_path_buf(),
-            status: FileStatus::Error(e.to_string()),
+            status: FileStatus::Error(e.to_vstring()),
         },
     }
 }

@@ -1,34 +1,25 @@
-use std::io::{self, Read, Write};
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::io::{self, Read, Write};
 
 use crate::libs::db::langs::postgres::lib::error::PgError;
 use crate::libs::db::langs::postgres::lib::types::{Column, Row, Value};
-
 // --- MD5 implementation (RFC 1321) ---
 
 const S: [u32; 64] = [
-    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-    5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
-    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9,
+    14, 20, 5, 9, 14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15,
+    21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
 ];
 
 const K: [u32; 64] = [
-    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
-    0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
-    0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
-    0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
-    0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
-    0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
-    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
-    0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
-    0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
-    0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
-    0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05,
-    0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
-    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
-    0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
-    0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
-    0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
+    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+    0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+    0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+    0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+    0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+    0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
 ];
 
 pub fn md5_digest(data: &[u8]) -> [u8; 16] {
@@ -111,7 +102,7 @@ pub fn md5_password(user: &str, password: &str, salt: &[u8; 4]) -> String {
     outer_input.extend_from_slice(salt);
     let outer = md5_digest(&outer_input);
 
-    format!("md5{}", hex_encode(&outer))
+    crate::vformat!("md5{}", hex_encode(&outer))
 }
 
 // --- Wire protocol helpers ---
@@ -160,7 +151,7 @@ fn read_cstring(data: &[u8], offset: &mut usize) -> Result<String, PgError> {
     if *offset >= data.len() {
         return Err(PgError::Protocol("unterminated string".into()));
     }
-    let s = String::from_utf8_lossy(&data[start..*offset]).into_owned();
+    let s = String::from_utf8_lossy(&data[start..*offset]).to_owned();
     *offset += 1;
     Ok(s)
 }
@@ -193,11 +184,16 @@ pub fn read_message<R: Read>(stream: &mut R) -> Result<(u8, Vec<u8>), PgError> {
     stream.read_exact(&mut len_buf)?;
     let len = i32::from_be_bytes(len_buf);
     if len < 4 {
-        return Err(PgError::Protocol(format!("invalid message length: {len}")));
+        return Err(PgError::Protocol(crate::vformat!(
+            "invalid message length: {len}"
+        )));
     }
 
     let payload_len = (len - 4) as usize;
-    let mut payload = vec![0u8; payload_len];
+    let mut payload = Vec::with_capacity(payload_len);
+    for _ in 0..payload_len {
+        payload.push(0);
+    }
     if payload_len > 0 {
         stream.read_exact(&mut payload)?;
     }
@@ -366,7 +362,7 @@ pub fn parse_data_row(data: &[u8], columns: &[Column]) -> Result<Row, PgError> {
             if offset + len > data.len() {
                 return Err(PgError::Protocol("truncated data row".into()));
             }
-            let text = String::from_utf8_lossy(&data[offset..offset + len]).into_owned();
+            let text = String::from_utf8_lossy(&data[offset..offset + len]).to_owned();
             offset += len;
 
             let type_oid = columns.get(i).map(|c| c.type_oid).unwrap_or(0);
@@ -374,7 +370,8 @@ pub fn parse_data_row(data: &[u8], columns: &[Column]) -> Result<Row, PgError> {
         }
     }
 
-    Ok(Row::new(columns.to_vec(), values))
+    let cols: Vec<Column> = columns.iter().cloned().collect();
+    Ok(Row::new(cols, values))
 }
 
 /// Parse ErrorResponse/NoticeResponse payload into field map.
@@ -427,6 +424,7 @@ pub fn parse_command_complete(data: &[u8]) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vvec;
 
     // --- MD5 tests (RFC 1321 Appendix A.5) ---
 
@@ -462,15 +460,15 @@ mod tests {
 
     #[test]
     fn md5_alphanumeric() {
-        let digest =
-            md5_digest(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+        let digest = md5_digest(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
         assert_eq!(hex_encode(&digest), "d174ab98d277d9f5a5611c2c9f419d9f");
     }
 
     #[test]
     fn md5_numeric() {
-        let digest =
-            md5_digest(b"12345678901234567890123456789012345678901234567890123456789012345678901234567890");
+        let digest = md5_digest(
+            b"12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+        );
         assert_eq!(hex_encode(&digest), "57edf4a22be3c955ac49da2e2107b67a");
     }
 
@@ -519,7 +517,7 @@ mod tests {
         let mut cursor = io::Cursor::new(wire);
         let (tag, payload) = read_message(&mut cursor).unwrap();
         assert_eq!(tag, b'Z');
-        assert_eq!(payload, vec![b'I']);
+        assert_eq!(payload, vvec![b'I']);
     }
 
     #[test]
@@ -573,7 +571,7 @@ mod tests {
 
     #[test]
     fn parse_data_row_basic() {
-        let columns = vec![
+        let columns = vvec![
             Column {
                 name: "id".into(),
                 type_oid: 23,
@@ -604,7 +602,7 @@ mod tests {
 
     #[test]
     fn parse_data_row_with_null() {
-        let columns = vec![Column {
+        let columns = vvec![Column {
             name: "val".into(),
             type_oid: 25,
         }];
@@ -698,6 +696,6 @@ mod tests {
     fn write_terminate_message() {
         let mut buf = Vec::new();
         write_terminate(&mut buf).unwrap();
-        assert_eq!(buf, [b'X', 0, 0, 0, 4]);
+        assert_eq!(buf.as_slice(), &[b'X', 0, 0, 0, 4]);
     }
 }

@@ -1,8 +1,11 @@
-use std::io::Write;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use core::sync::atomic::{AtomicBool, Ordering};
+
+use crate::core::volkiwithstds::collections::String;
+use crate::core::volkiwithstds::io::traits::Write;
+use crate::core::volkiwithstds::sync::Arc;
+use crate::core::volkiwithstds::thread;
+use crate::core::volkiwithstds::time::Duration;
+use crate::{veprint, veprintln};
 
 use super::style;
 
@@ -28,7 +31,7 @@ pub struct Spinner {
 impl Spinner {
     pub fn new(label: &str) -> Self {
         let running = Arc::new(AtomicBool::new(true));
-        let label_owned = label.to_string();
+        let label_owned = String::from(label);
 
         let r = running.clone();
         let l = label_owned.clone();
@@ -38,13 +41,13 @@ impl Spinner {
             while r.load(Ordering::Relaxed) {
                 let frame = BRAILLE_FRAMES[frame_idx % BRAILLE_FRAMES.len()];
                 let spinner_char = style::purple(frame);
-                eprint!("\r  {} {}", spinner_char, l);
-                let _ = std::io::stderr().flush();
+                veprint!("\r  {} {}", spinner_char, l);
+                let _ = crate::core::volkiwithstds::io::stderr().flush();
                 frame_idx += 1;
                 thread::sleep(Duration::from_millis(80));
             }
-            eprint!("\r{}\r", " ".repeat(l.len() + 6));
-            let _ = std::io::stderr().flush();
+            veprint!("\r{}\r", String::from(" ").repeat(l.len() + 6));
+            let _ = crate::core::volkiwithstds::io::stderr().flush();
         });
 
         Spinner {
@@ -59,7 +62,7 @@ impl Spinner {
         if let Some(handle) = self.handle.take() {
             let _ = handle.join();
         }
-        eprintln!("  {} {}", symbol, message);
+        veprintln!("  {} {}", symbol, message);
     }
 
     pub fn fail(mut self, message: &str) {
@@ -67,7 +70,7 @@ impl Spinner {
         if let Some(handle) = self.handle.take() {
             let _ = handle.join();
         }
-        eprintln!("  {} {}", style::red(style::CROSS), message);
+        veprintln!("  {} {}", style::red(style::CROSS), message);
     }
 
     #[allow(dead_code)]

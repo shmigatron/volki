@@ -1,0 +1,221 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Volki",
+  "scopeName": "source.volki",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#rsx-tags" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#operators" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.documentation.volki",
+          "match": "//!.*$"
+        },
+        {
+          "name": "comment.line.double-slash.volki",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.volki",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "patterns": [
+            { "include": "#block-comment-nested" }
+          ]
+        }
+      ]
+    },
+    "block-comment-nested": {
+      "name": "comment.block.volki",
+      "begin": "/\\*",
+      "end": "\\*/",
+      "patterns": [
+        { "include": "#block-comment-nested" }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.raw.volki",
+          "begin": "r(#*)\"",
+          "end": "\"\\1",
+          "patterns": []
+        },
+        {
+          "name": "string.quoted.double.volki",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.volki",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.volki",
+          "match": "'([^'\\\\]|\\\\.)'",
+          "captures": {
+            "0": { "name": "string.quoted.single.volki" }
+          }
+        }
+      ]
+    },
+    "rsx-tags": {
+      "patterns": [
+        { "include": "#rsx-tag-closing" },
+        { "include": "#rsx-tag-opening" },
+        { "include": "#rsx-component-opening" }
+      ]
+    },
+    "rsx-tag-closing": {
+      "begin": "(</)\\s*(div|span|p|a|h[1-6]|table|tr|td|th|thead|tbody|tfoot|input|button|form|textarea|select|option|label|nav|ul|ol|li|dl|dt|dd|img|br|hr|pre|code|blockquote|header|footer|main|section|article|aside|strong|em|b|i|u|small|sub|sup|video|audio|source|canvas|svg|path|meta|link|script|style|title|body|html|details|summary|dialog|figure|figcaption|[A-Z][A-Za-z0-9_]*)\\s*(>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.volki" },
+        "2": { "name": "entity.name.tag.volki" },
+        "3": { "name": "punctuation.definition.tag.end.volki" }
+      },
+      "end": "",
+      "patterns": []
+    },
+    "rsx-tag-opening": {
+      "begin": "(<)(div|span|p|a|h[1-6]|table|tr|td|th|thead|tbody|tfoot|input|button|form|textarea|select|option|label|nav|ul|ol|li|dl|dt|dd|img|br|hr|pre|code|blockquote|header|footer|main|section|article|aside|strong|em|b|i|u|small|sub|sup|video|audio|source|canvas|svg|path|meta|link|script|style|title|body|html|details|summary|dialog|figure|figcaption)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.volki" },
+        "2": { "name": "entity.name.tag.volki" }
+      },
+      "end": "(/?>)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.volki" }
+      },
+      "patterns": [
+        { "include": "#rsx-tag-attributes" }
+      ]
+    },
+    "rsx-component-opening": {
+      "begin": "(<)([A-Z][A-Za-z0-9_]*)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.volki" },
+        "2": { "name": "entity.name.tag.component.volki" }
+      },
+      "end": "(/?>)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.volki" }
+      },
+      "patterns": [
+        { "include": "#rsx-tag-attributes" }
+      ]
+    },
+    "rsx-tag-attributes": {
+      "patterns": [
+        {
+          "name": "entity.other.attribute-name.volki",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_-]*(?=\\s*=)"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "name": "meta.embedded.expression.volki",
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            { "include": "$self" }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.volki",
+          "match": "\\b0x[0-9a-fA-F_]+(i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize)?\\b"
+        },
+        {
+          "name": "constant.numeric.octal.volki",
+          "match": "\\b0o[0-7_]+(i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize)?\\b"
+        },
+        {
+          "name": "constant.numeric.binary.volki",
+          "match": "\\b0b[01_]+(i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize)?\\b"
+        },
+        {
+          "name": "constant.numeric.float.volki",
+          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*(e[+-]?[0-9_]+)?(f32|f64)?\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.volki",
+          "match": "\\b[0-9][0-9_]*(i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize|f32|f64)?\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.volki",
+          "match": "\\b(if|else|for|while|loop|match|return|break|continue|async|await|move)\\b"
+        },
+        {
+          "name": "keyword.other.volki",
+          "match": "\\b(pub|fn|let|mut|const|use|unsafe|mod|crate|self|super|struct|enum|impl|trait|where|as|in|ref|type|dyn|static|extern)\\b"
+        },
+        {
+          "name": "constant.language.volki",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "entity.name.type.volki",
+          "match": "\\b(Html|Fragment|Client|HtmlNode|HtmlElement|Request|Response|Metadata|Style|Head|Vec|Result|Option|String|bool|i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize|f32|f64|str|char|Box|Rc|Arc|HashMap|HashSet|BTreeMap|BTreeSet)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.volki",
+          "match": "->"
+        },
+        {
+          "name": "keyword.operator.fat-arrow.volki",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.namespace.volki",
+          "match": "::"
+        },
+        {
+          "name": "keyword.operator.comparison.volki",
+          "match": "(<=|>=|==|!=)"
+        },
+        {
+          "name": "keyword.operator.logical.volki",
+          "match": "(&&|\\|\\|)"
+        },
+        {
+          "name": "keyword.operator.volki",
+          "match": "[>,:;=!&|?#@+*/%^~]"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.volki",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}

@@ -1,8 +1,10 @@
-use std::fs;
-use std::path::Path;
+use crate::core::volkiwithstds::collections::ToString;
+use crate::core::volkiwithstds::collections::{String, Vec};
+use crate::core::volkiwithstds::fs;
+use crate::core::volkiwithstds::path::Path;
 
+use crate::core::volkiwithstds::collections::json::{JsonValue, extract_top_level};
 use crate::libs::lang::shared::license::heuristic::detect_license_from_file;
-use crate::libs::lang::shared::license::parsers::json::{extract_top_level, JsonValue};
 use crate::libs::lang::shared::license::scan_util::finalize_scan;
 use crate::libs::lang::shared::license::types::{
     LicenseCategory, LicenseError, LicenseSource, PackageLicense, ScanConfig, ScanResult,
@@ -13,14 +15,14 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
     let lock_path = root.join("composer.lock");
 
     if !root.join("composer.json").exists() {
-        return Err(LicenseError::NoManifest(
-            "No composer.json found in project directory".to_string(),
-        ));
+        return Err(LicenseError::NoManifest(crate::vstr!(
+            "No composer.json found in project directory"
+        )));
     }
     if !lock_path.exists() {
-        return Err(LicenseError::NoDependencyDir(
-            "No composer.lock found (run composer install first)".to_string(),
-        ));
+        return Err(LicenseError::NoDependencyDir(crate::vstr!(
+            "No composer.lock found (run composer install first)"
+        )));
     }
 
     let project_name = read_project_name(&root.join("composer.json"));
@@ -54,13 +56,17 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult, LicenseError> {
 fn parse_composer_package(value: &JsonValue, root: &Path) -> Option<PackageLicense> {
     let obj = value.as_object()?;
 
-    let name = obj.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let name = obj
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_vstring();
     let version = obj
         .get("version")
         .and_then(|v| v.as_str())
         .unwrap_or("0.0.0")
         .trim_start_matches('v')
-        .to_string();
+        .to_vstring();
 
     if name.is_empty() {
         return None;
@@ -69,14 +75,17 @@ fn parse_composer_package(value: &JsonValue, root: &Path) -> Option<PackageLicen
     // License is in the "license" array field
     let (license, source) = if let Some(lic_val) = obj.get("license") {
         if let Some(arr) = lic_val.as_array() {
-            let parts: Vec<String> = arr.iter().filter_map(|v| v.as_str().map(String::from)).collect();
+            let parts: Vec<String> = arr
+                .iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect();
             if !parts.is_empty() {
                 (parts.join(" OR "), LicenseSource::LockfileField)
             } else {
                 try_license_file(&name, root)
             }
         } else if let Some(s) = lic_val.as_str() {
-            (s.to_string(), LicenseSource::LockfileField)
+            (s.to_vstring(), LicenseSource::LockfileField)
         } else {
             try_license_file(&name, root)
         }
@@ -102,7 +111,7 @@ fn try_license_file(name: &str, root: &Path) -> (String, LicenseSource) {
             return (l, LicenseSource::LicenseFile);
         }
     }
-    ("UNKNOWN".to_string(), LicenseSource::NotFound)
+    (crate::vstr!("UNKNOWN"), LicenseSource::NotFound)
 }
 
 fn read_project_name(path: &Path) -> String {
@@ -110,9 +119,9 @@ fn read_project_name(path: &Path) -> String {
         let map = extract_top_level(&content);
         if let Some(name) = map.get("name").and_then(|v| v.as_str()) {
             if !name.is_empty() {
-                return name.to_string();
+                return name.to_vstring();
             }
         }
     }
-    "unnamed".to_string()
+    crate::vstr!("unnamed")
 }

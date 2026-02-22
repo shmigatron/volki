@@ -1,3 +1,5 @@
+use crate::veprintln;
+
 use crate::core::cli::command::Command;
 use crate::core::cli::error::CliError;
 use crate::core::cli::output;
@@ -22,11 +24,11 @@ impl Command for StatusCommand {
     fn execute(&self, _args: &ParsedArgs) -> Result<(), CliError> {
         output::print_item(
             &style::green(style::CHECK),
-            &format!("project status: {}", style::green("ok")),
+            &crate::vformat!("project status: {}", style::green("ok")),
         );
-        eprintln!();
+        veprintln!();
         output::print_hint("run volki --help to see available commands");
-        eprintln!();
+        veprintln!();
         Ok(())
     }
 }
